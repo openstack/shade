@@ -410,8 +410,8 @@ class OpenStackCloud(object):
 
     @_cache_on_arguments()
     def get_project_cache(self):
-        return {project.id: project for project in
-                self._project_manager.list()}
+        return dict((project.id, project) for project in
+                self._project_manager.list())
 
     @property
     def _project_manager(self):
@@ -520,7 +520,7 @@ class OpenStackCloud(object):
     @_cache_on_arguments()
     def get_user_cache(self):
         user_list = self.manager.submitTask(_tasks.UserList())
-        return {user.id: user for user in user_list}
+        return dict((user.id, user) for user in user_list)
 
     def _get_user(self, name_or_id):
         """Retrieve a user by name or id."""
