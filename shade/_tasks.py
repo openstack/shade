@@ -446,6 +446,21 @@ class ObjectMetadata(task_manager.Task):
         return client.swift_client.head_object(**self.args)
 
 
+class NetpartitionCreate(task_manager.Task):
+    def main(self, client):
+        return client.neutron_client.create_net_partition(**self.args)
+
+
+class NetpartitionList(task_manager.Task):
+    def main(self, client):
+        return client.neutron_client.list_net_partitions()
+
+
+class NetpartitionDelete(task_manager.Task):
+    def main(self, client):
+        client.neutron_client.delete_net_partition(**self.args)
+
+
 class SubnetCreate(task_manager.Task):
     def main(self, client):
         return client.neutron_client.create_subnet(**self.args)
