@@ -3753,7 +3753,7 @@ class OpenStackCloud(object):
                       allocation_pools=None, gateway_ip=None,
                       dns_nameservers=None, host_routes=None,
                       ipv6_ra_mode=None, ipv6_address_mode=None,
-                      net_partition=None):
+                      net_partition=None, nuagenet=None):
         """Create a subnet on a specified network.
 
         :param string network_name_or_id:
@@ -3813,6 +3813,8 @@ class OpenStackCloud(object):
            'dhcpv6-stateless', or 'slaac'.
         :param string net_partition:
            The name of the Neutron net-partition.
+        :param string nuagenet:
+           The id of the subnet entity on Nuage VSD
 
         :returns: The new subnet object.
         :raises: OpenStackCloudException on operation error.
@@ -3851,6 +3853,8 @@ class OpenStackCloud(object):
             subnet['ipv6_address_mode'] = ipv6_address_mode
         if net_partition:
             subnet['net_partition'] = net_partition
+        if nuagenet:
+            subnet['nuagenet'] = nuagenet
 
         with _utils.neutron_exceptions(
                 "Error creating subnet on network "
