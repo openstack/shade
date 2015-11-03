@@ -901,6 +901,20 @@ class OpenStackCloud(object):
         routers = self.list_routers(filters)
         return _utils._filter_list(routers, name_or_id, filters)
 
+    def search_netpartitions(self, name_or_id=None, filters=None):
+        """Search OpenStack netpartitions
+
+        :param name_or_id: Name or id of the desired netpartition.
+        :param filters: a dict containing additional filters to use.
+
+        :returns: a list of dicts containing the netpartition description.
+
+        :raises: ``OpenStackCloudException`` if something goes wrong during the
+            openstack API call.
+        """
+        netpartitions = self.list_netpartitions(filters)
+        return _utils._filter_list(netpartitions, name_or_id, filters)
+
     def search_subnets(self, name_or_id=None, filters=None):
         """Search OpenStack subnets
 
@@ -1036,6 +1050,20 @@ class OpenStackCloud(object):
         with _utils.neutron_exceptions("Error fetching router list"):
             return self.manager.submitTask(
                 _tasks.RouterList(**filters))['routers']
+
+    def list_netpartitions(self, filters=None):
+        """List all available netpartitions.
+
+        :param filters: (optional) dict of filter conditions to push down
+        :returns: A list of subnet dicts.
+
+        """
+        # Translate None from search interface to empty {} for kwargs below
+        if not filters:
+            filters = {}
+        with self._neutron_exceptions("Error fetching netpartition list"):
+            return self.manager.submitTask(
+                _tasks.NetpartitionList(**filters))['net_partitions']
 
     def list_subnets(self, filters=None):
         """List all available subnets.
@@ -1452,6 +1480,27 @@ class OpenStackCloud(object):
 
         """
         return _utils._get_entity(self.search_routers, name_or_id, filters)
+
+    def get_netpartition(self, name_or_id, filters=None):
+        """Get a netpartition by name or ID.
+
+        :param name_or_id: Name or ID of the netpartition.
+        :param dict filters:
+            A dictionary of meta data to use for further filtering. Elements
+            of this dictionary may, themselves, be dictionaries. Example::
+
+                {
+                  'last_name': 'Smith',
+                  'other': {
+                      'gender': 'Female'
+                  }
+                }
+
+        :returns: A netpartition dict or None if no matching netpartition is
+        found.
+
+        """
+        return _utils._get_entity(self.search_netpartitions, name_or_id, filters)
 
     def get_subnet(self, name_or_id, filters=None):
         """Get a subnet by name or ID.
@@ -3644,11 +3693,67 @@ class OpenStackCloud(object):
                 "Object metadata fetch failed: %s (%s/%s)" % (
                     e.http_reason, e.http_host, e.http_path))
 
+    def create_netpartition(self, netpartition_name, netpartition_id=None):
+        """Create a netpartiton.
+
+        :param string netpartition_name:
+           The unique name for the net partition. If a non-unique name is
+           supplied, an exception is raised.
+        :param string netpartition_id:
+           The ID of the net partition.
+
+        :returns: The new net partition object.
+        :raises: OpenStackCloudException on operation error.
+        """
+
+        # The body of the neutron message for the netpartition we wish to create.
+        # This includes attributes that are required or have defaults.
+        netpartition = {
+            'name': netpartition_name
+        }
+
+        # Add optional attributes to the message.
+        if netpartition_id:
+            netpartition['tenant_id'] = netpartition_id
+
+        with self._neutron_exceptions(
+                "Error creating netpartition "
+                "{0}".format(netpartition_name)):
+            new_netpartition = self.manager.submitTask(
+                _tasks.NetpartitionCreate(body=dict(net_partition=netpartition)))
+
+        return new_netpartition['net_partition']
+
+    def delete_netpartition(self, name_or_id):
+        """Delete a netpartition.
+
+        If a name, instead of a unique UUID, is supplied, it is possible
+        that we could find more than one matching netpartition since names are
+        not required to be unique. An error will be raised in this case.
+
+        :param name_or_id: Name or ID of the netpartition being deleted.
+
+        :returns: True if delete succeeded, False otherwise.
+
+        :raises: OpenStackCloudException on operation error.
+        """
+        netpartition = self.get_netpartition(name_or_id)
+        if not netpartition:
+            self.log.debug("Netpartition %s not found for deleting" % name_or_id)
+            return False
+
+        with self._neutron_exceptions(                "Error deleting netpartition {0}".format(name_or_id)):
+            self.manager.submitTask(
+                _tasks.NetpartitionDelete(netpartition=netpartition['id']))
+        return True
+
+
     def create_subnet(self, network_name_or_id, cidr, ip_version=4,
                       enable_dhcp=False, subnet_name=None, tenant_id=None,
                       allocation_pools=None, gateway_ip=None,
                       dns_nameservers=None, host_routes=None,
-                      ipv6_ra_mode=None, ipv6_address_mode=None):
+                      ipv6_ra_mode=None, ipv6_address_mode=None,
+                      net_partition=None):
         """Create a subnet on a specified network.
 
         :param string network_name_or_id:
@@ -3706,6 +3811,8 @@ class OpenStackCloud(object):
         :param string ipv6_address_mode:
            IPv6 address mode. Valid values are: 'dhcpv6-stateful',
            'dhcpv6-stateless', or 'slaac'.
+        :param string net_partition:
+           The name of the Neutron net-partition.
 
         :returns: The new subnet object.
         :raises: OpenStackCloudException on operation error.
@@ -3742,6 +3849,8 @@ class OpenStackCloud(object):
             subnet['ipv6_ra_mode'] = ipv6_ra_mode
         if ipv6_address_mode:
             subnet['ipv6_address_mode'] = ipv6_address_mode
+        if net_partition:
+            subnet['net_partition'] = net_partition
 
         with _utils.neutron_exceptions(
                 "Error creating subnet on network "
