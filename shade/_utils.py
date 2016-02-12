@@ -536,6 +536,8 @@ def shade_exceptions(error_message=None):
     except Exception as e:
         if error_message is None:
             error_message = str(e)
+        else:
+            error_message = "%s: %s" % (error_message, e)
         raise exc.OpenStackCloudException(error_message)
 
 
