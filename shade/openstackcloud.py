@@ -6504,7 +6504,7 @@ class OpenStackCloud(_normalize.Normalizer):
 
     @_utils.valid_kwargs('name', 'admin_state_up', 'fixed_ips',
                          'security_groups', 'allowed_address_pairs',
-                         'extra_dhcp_opts', 'device_owner')
+                         'extra_dhcp_opts', 'device_owner','device_id')
     def update_port(self, name_or_id, **kwargs):
         """Update a port
 
