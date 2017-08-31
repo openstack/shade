@@ -516,7 +516,8 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                                  state,
                                  configdrive=None,
                                  wait=False,
-                                 timeout=3600):
+                                 timeout=3600,
+                                 version="1.6"):
         """Set Node Provision State
 
         Enables a user to provision a Machine and optionally define a
@@ -539,42 +540,55 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         :param integer timeout: Integer value, defaulting to 3600 seconds,
                                 representing the amount of time to wait for
                                 the desire end state to be reached.
+        :param string version: String value, defaulting to ``1.6``, which
+                               represents the version to transmit to the
+                               baremetal service to govern the service's
+                               behavior. Newer versions may be used,
+                               as the default is set to ensure consistent
+                               behavior for users, however as direct calling
+                               methods in this library are updated, they will
+                               explicitly call this method with the versions
+                               that they support.
 
         :raises: OpenStackCloudException on operation error.
 
         :returns: ``munch.Munch`` representing the current state of the machine
                   upon exit of the method.
         """
-        with _utils.shade_exceptions(
-            "Baremetal machine node failed change provision state to "
-            "{state}".format(state=state)
-        ):
-            machine = self.manager.submit_task(
-                _tasks.MachineSetProvision(node_uuid=name_or_id,
-                                           state=state,
-                                           configdrive=configdrive))
+        msg = ("Baremetal machine node failed change provision state to "
+               "{state}".format(state=state))
 
-            if wait:
-                for count in _utils._iterate_timeout(
-                        timeout,
-                        "Timeout waiting for node transition to "
-                        "target state of '%s'" % state):
-                    machine = self.get_machine(name_or_id)
-                    if 'failed' in machine['provision_state']:
-                        raise OpenStackCloudException(
-                            "Machine encountered a failure.")
-                    # NOTE(TheJulia): This performs matching if the requested
-                    # end state matches the state the node has reached.
-                    if state in machine['provision_state']:
-                        break
-                    # NOTE(TheJulia): This performs matching for cases where
-                    # the reqeusted state action ends in available state.
-                    if ("available" in machine['provision_state'] and
-                            state in ["provide", "deleted"]):
-                        break
-            else:
+        url = '/nodes/{node_id}/states/provision'.format(
+            node_id=name_or_id)
+        payload = {'target': state}
+        if configdrive:
+            payload['configdrive'] = configdrive
+
+        machine = self._baremetal_client.put(url,
+                                             json=payload,
+                                             error_message=msg,
+                                             microversion=version)
+        if wait:
+            for count in _utils._iterate_timeout(
+                    timeout,
+                    "Timeout waiting for node transition to "
+                    "target state of '%s'" % state):
                 machine = self.get_machine(name_or_id)
-            return machine
+                if 'failed' in machine['provision_state']:
+                    raise OpenStackCloudException(
+                        "Machine encountered a failure.")
+                # NOTE(TheJulia): This performs matching if the requested
+                # end state matches the state the node has reached.
+                if state in machine['provision_state']:
+                    break
+                # NOTE(TheJulia): This performs matching for cases where
+                # the reqeusted state action ends in available state.
+                if ("available" in machine['provision_state'] and
+                        state in ["provide", "deleted"]):
+                    break
+        else:
+            machine = self.get_machine(name_or_id)
+        return machine
 
     def set_machine_maintenance_state(
             self,
