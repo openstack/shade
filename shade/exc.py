@@ -148,6 +148,9 @@ def raise_from_response(response, error_message=None):
     except ValueError:
         if response.reason:
             remote_error += " {reason}".format(reason=response.reason)
+    except AttributeError:
+        if response.reason:
+            remote_error += " {reason}".format(reason=response.reason)
 
     _log_response_extras(response)
 
