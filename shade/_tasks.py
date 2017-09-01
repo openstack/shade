@@ -17,16 +17,6 @@
 from shade import task_manager
 
 
-class MachineCreate(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.create(**self.args)
-
-
-class MachineDelete(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.delete(**self.args)
-
-
 class MachinePatch(task_manager.Task):
     def main(self, client):
         return client.ironic_client.node.update(**self.args)

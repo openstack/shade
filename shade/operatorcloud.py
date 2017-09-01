@@ -206,8 +206,17 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         :returns: Returns a ``munch.Munch`` representing the new
                   baremetal node.
         """
-        with _utils.shade_exceptions("Error registering machine with Ironic"):
-            machine = self.manager.submit_task(_tasks.MachineCreate(**kwargs))
+
+        msg = ("Baremetal machine node failed failed to be created.")
+
+        url = '/nodes'
+        # TODO(TheJulia): At some point we need to figure out how to
+        # handle data across when the requestor is defining newer items
+        # with the older api.
+        machine = self._baremetal_client.post(url,
+                                              json=kwargs,
+                                              error_message=msg,
+                                              microversion="1.6")
 
         created_nics = []
         try:
@@ -229,8 +238,13 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                     except Exception:
                         pass
             finally:
-                self.manager.submit_task(
-                    _tasks.MachineDelete(node_id=machine['uuid']))
+                version = "1.6"
+                msg = "Baremetal machine failed to be deleted."
+                url = '/nodes/{node_id}'.format(
+                    node_id=machine['uuid'])
+                self._baremetal_client.delete(url,
+                                              error_message=msg,
+                                              microversion=version)
             raise OpenStackCloudException(
                 "Error registering NICs with the baremetal service: %s"
                 % str(e))
@@ -342,8 +356,20 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         with _utils.shade_exceptions(
                 "Error unregistering machine {node_id} from the baremetal "
                 "API".format(node_id=uuid)):
-            self.manager.submit_task(
-                _tasks.MachineDelete(node_id=uuid))
+
+            # NOTE(TheJulia): While this should not matter microversion wise,
+            # ironic assumes all calls without an explicit microversion to be
+            # version 1.0. Ironic expects to deprecate support for older
+            # microversions in future releases, as such, we explicitly set
+            # the version to what we have been using with the client library..
+            version = "1.6"
+            msg = "Baremetal machine failed to be deleted."
+            url = '/nodes/{node_id}'.format(
+                node_id=uuid)
+            self._baremetal_client.delete(url,
+                                          error_message=msg,
+                                          microversion=version)
+
             if wait:
                 for count in _utils._iterate_timeout(
                         timeout,
