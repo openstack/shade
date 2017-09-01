@@ -415,15 +415,13 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         :returns: ``munch.Munch`` representing the newly updated node.
         """
 
-        with _utils.shade_exceptions(
-            "Error updating machine via patch operation on node "
-            "{node}".format(node=name_or_id)
-        ):
-            return self._normalize_machine(
-                self.manager.submit_task(
-                    _tasks.MachinePatch(node_id=name_or_id,
-                                        patch=patch,
-                                        http_method='PATCH')))
+        msg = ("Error updating machine via patch operation on node "
+               "{node}".format(node=name_or_id))
+        url = '/nodes/{node_id}'.format(node_id=name_or_id)
+        return self._normalize_machine(
+            self._baremetal_client.patch(url,
+                                         json=patch,
+                                         error_message=msg))
 
     def update_machine(self, name_or_id, chassis_uuid=None, driver=None,
                        driver_info=None, name=None, instance_info=None,
@@ -772,16 +770,22 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
             uuid, 'deleted', wait=wait, timeout=timeout)
 
     def set_node_instance_info(self, uuid, patch):
-        with _utils.shade_exceptions():
-            return self.manager.submit_task(
-                _tasks.MachineNodeUpdate(node_id=uuid, patch=patch))
+        msg = ("Error updating machine via patch operation on node "
+               "{node}".format(node=uuid))
+        url = '/nodes/{node_id}'.format(node_id=uuid)
+        return self._baremetal_client.patch(url,
+                                            json=patch,
+                                            error_message=msg)
 
     def purge_node_instance_info(self, uuid):
         patch = []
         patch.append({'op': 'remove', 'path': '/instance_info'})
-        with _utils.shade_exceptions():
-            return self.manager.submit_task(
-                _tasks.MachineNodeUpdate(node_id=uuid, patch=patch))
+        msg = ("Error updating machine via patch operation on node "
+               "{node}".format(node=uuid))
+        url = '/nodes/{node_id}'.format(node_id=uuid)
+        return self._baremetal_client.patch(url,
+                                            json=patch,
+                                            error_message=msg)
 
     @_utils.valid_kwargs('type', 'service_type', 'description')
     def create_service(self, name, enabled=True, **kwargs):
