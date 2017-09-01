@@ -41,8 +41,6 @@ class TestBaremetalPort(base.IronicTestCase):
             node_id=self.uuid)
 
     def test_list_nics(self):
-        port_list = [self.fake_baremetal_port,
-                     self.fake_baremetal_port2]
         self.register_uris([
             dict(method='GET',
                  uri=self.get_mock_url(resource='ports'),
@@ -51,7 +49,8 @@ class TestBaremetalPort(base.IronicTestCase):
         ])
 
         return_value = self.op_cloud.list_nics()
-        self.assertEqual(port_list, return_value)
+        self.assertEqual(2, len(return_value['ports']))
+        self.assertEqual(self.fake_baremetal_port, return_value['ports'][0])
         self.assert_calls()
 
     def test_list_nics_failure(self):

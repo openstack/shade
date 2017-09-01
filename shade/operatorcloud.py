@@ -33,9 +33,10 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
     """
 
     def list_nics(self):
-        with _utils.shade_exceptions("Error fetching machine port list"):
-            return self._normalize_machines(
-                self.manager.submit_task(_tasks.MachinePortList()))
+        msg = "Error fetching machine port list"
+        return self._baremetal_client.get("/ports",
+                                          microversion="1.6",
+                                          error_message=msg)
 
     def list_nics_for_machine(self, uuid):
         with _utils.shade_exceptions(
