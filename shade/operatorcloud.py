@@ -207,7 +207,7 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                 nic = self.manager.submit_task(
                     _tasks.MachinePortCreate(address=row['mac'],
                                              node_uuid=machine['uuid']))
-                created_nics.append(nic.uuid)
+                created_nics.append(nic['uuid'])
 
         except Exception as e:
             self.log.debug("ironic NIC registration failed", exc_info=True)
@@ -273,7 +273,10 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                         machine = self.get_machine(machine['uuid'])
                         if (machine['reservation'] is None and
                            machine['provision_state'] is not 'enroll'):
-
+                            # NOTE(TheJulia): In this case, the node has
+                            # has moved on from the previous state and is
+                            # likely not being verified, as no lock is
+                            # present on the node.
                             self.node_set_provision_state(
                                 machine['uuid'], 'provide')
                             machine = self.get_machine(machine['uuid'])
@@ -288,8 +291,10 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                             raise OpenStackCloudException(
                                 "Machine encountered a failure: %s"
                                 % machine['last_error'])
-
-        return machine
+        if not isinstance(machine, str):
+            return self._normalize_machine(machine)
+        else:
+            return machine
 
     def unregister_machine(self, nics, uuid, wait=False, timeout=600):
         """Unregister Baremetal from Ironic
