@@ -1,0 +1,10 @@
+- hosts: all
+  tasks:
+
+  - name: Set shade libraries to master branch before functional tests
+    command: git checkout master
+    args:
+      chdir: "src/git.openstack.org/openstack/{{ item }}"
+    with_items:
+      - keystoneauth
+      - os-client-config

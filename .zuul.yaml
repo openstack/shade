@@ -37,9 +37,185 @@
         - shade-tox-py27-tips
         - shade-tox-py35-tips
 
+- job:
+    name: shade-functional-devstack-base
+    parent: devstack
+    description: |
+      Base job for devstack-based functional tests
+    pre-run: playbooks/devstack/pre
+    run: playbooks/devstack/run
+    post-run: playbooks/devstack/post
+    required-projects:
+      # These jobs will DTRT when shade triggers them, but we want to make
+      # sure stable branches of shade never get cloned by other people,
+      # since stable branches of shade are, well, not actually things.
+      - name: openstack-infra/shade
+        override-branch: master
+      - name: openstack/heat
+      - name: openstack/swift
+    roles:
+      - zuul: openstack-infra/devstack
+    timeout: 9000
+    vars:
+      devstack_localrc:
+        SWIFT_HASH: "1234123412341234"
+      devstack_local_conf:
+        post-config:
+          "$CINDER_CONF":
+            DEFAULT:
+              osapi_max_limit: 6
+      devstack_services:
+        ceilometer-acentral: False
+        ceilometer-acompute: False
+        ceilometer-alarm-evaluator: False
+        ceilometer-alarm-notifier: False
+        ceilometer-anotification: False
+        ceilometer-api: False
+        ceilometer-collector: False
+        horizon: False
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
+      devstack_plugins:
+        heat: https://git.openstack.org/openstack/heat
+      tox_environment:
+        # Do we really need to set this? It's cargo culted
+        PYTHONUNBUFFERED: 'true'
+        # Is there a way we can query the localconf variable to get these
+        # rather than setting them explicitly?
+        SHADE_HAS_DESIGNATE: 0
+        SHADE_HAS_HEAT: 1
+        SHADE_HAS_MAGNUM: 0
+        SHADE_HAS_NEUTRON: 1
+        SHADE_HAS_SWIFT: 1
+      tox_install_siblings: False
+      tox_envlist: functional
+      zuul_work_dir: src/git.openstack.org/openstack-infra/shade
+
+- job:
+    name: shade-functional-devstack-legacy
+    parent: shade-functional-devstack-base
+    description: |
+      Run shade functional tests against a legacy devstack
+    # TODO(mordred): This does not seem to 
+    voting: false
+    vars:
+      devstack_localrc:
+        ENABLE_IDENTITY_V2: True
+        FLAT_INTERFACE: br_flat
+        PUBLIC_INTERFACE: br_pub
+      tox_environment:
+        SHADE_USE_KEYSTONE_V2: 1
+        SHADE_HAS_NEUTRON: 0
+    override-branch: stable/newton
+
+- job:
+    name: shade-functional-devstack
+    parent: shade-functional-devstack-base
+    description: |
+      Run shade functional tests against a master devstack
+    vars:
+      devstack_localrc:
+        Q_SERVICE_PLUGIN_CLASSES: qos
+        Q_ML2_PLUGIN_EXT_DRIVERS: qos,port_security
+
+- job:
+    name: shade-functional-devstack-python3
+    parent: shade-functional-devstack
+    description: |
+      Run shade functional tests using python3 against a master devstack
+    vars:
+      shade_environment:
+        SHADE_TOX_PYTHON: python3
+
+- job:
+    name: shade-functional-devstack-libs
+    parent: shade-functional-devstack
+    description: |
+      Run shade functional tests with tips of library dependencies against a
+      master devstack.
+    voting: false
+    required-projects:
+      - name: openstack/keystoneauth
+      - name: openstack/os-client-config
+    vars:
+      tox_install_siblings: True
+
+- job:
+    name: shade-functional-devstack-libs-python3
+    parent: shade-functional-devstack-libs
+    description: |
+      Run shade functional tests with tips of library dependencies using
+      python3 against a master devstack.
+    voting: false
+    vars:
+      tox_environment:
+        SHADE_TOX_PYTHON: python3
+
+- job:
+    name: shade-functional-devstack-magnum
+    parent: shade-functional-devstack
+    description: |
+      Run shade functional tests against a master devstack with magnum
+    required-projects:
+      - openstack/magnum
+      - openstack/python-magnumclient
+    vars:
+      devstack_plugins:
+        magnum: https://git.openstack.org/openstack/magnum
+      devstack_localrc:
+        MAGNUM_GUEST_IMAGE_URL: "https://tarballs.openstack.org/magnum/images/fedora-atomic-f23-dib.qcow2"
+        MAGNUM_IMAGE_NAME: fedora-atomic-f23-dib
+      devstack_services:
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
+      tox_environment:
+        SHADE_HAS_SWIFT: 0
+        SHADE_HAS_MAGNUM: 1
+    voting: false
+
+- job:
+    name: shade-ansible-functional-devstack
+    parent: shade-functional-devstack
+    description: |
+      Run shade ansible functional tests against a master devstack
+      using released version of ansible.
+    vars:
+      tox_envlist: ansible
+
+- job:
+    name: shade-ansible-devel-functional-devstack
+    parent: shade-ansible-functional-devstack
+    description: |
+      Run shade ansible functional tests against a master devstack
+      using git devel branch version of ansible.
+    # required-projects:
+    #   - github.com/ansible/ansible
+    voting: false
+    vars:
+      tox_install_siblings: True
+
 - project:
     name: openstack-infra/shade
     templates:
       - publish-to-pypi
       - publish-openstack-sphinx-docs
       - shade-tox-tips
+    check:
+      jobs:
+        - shade-ansible-devel-functional-devstack
+        - shade-ansible-functional-devstack
+        - shade-functional-devstack
+        - shade-functional-devstack-legacy
+        - shade-functional-devstack-libs
+        - shade-functional-devstack-libs-python3
+        - shade-functional-devstack-magnum
+        - shade-functional-devstack-python3
+    gate:
+      jobs:
+        - shade-ansible-functional-devstack
+        - shade-functional-devstack
+        - shade-functional-devstack-python3
