@@ -1433,6 +1433,51 @@ class OpenStackCloud(
         routers = self.list_routers(filters)
         return _utils._filter_list(routers, name_or_id, filters)
 
+    def search_firewall_rules(self, name_or_id=None, filters=None):
+        """Search OpenStack firewall rules
+
+        :param name_or_id: Name or id of the desired firewall rule.
+        :param filters: a dict containing additional filters to use. e.g.
+                        {'action': ALLOW}
+
+        :returns: a list of ``munch.Munch`` containing the firewall rule description.
+
+        :raises: ``OpenStackCloudException`` if something goes wrong during the
+            openstack API call.
+        """
+        firewall_rules = self.list_firewall_rules(filters)
+        return _utils._filter_list(firewall_rules, name_or_id, filters)
+
+    def search_firewall_policies(self, name_or_id=None, filters=None):
+        """Search OpenStack firewall policies
+
+        :param name_or_id: Name or id of the desired firewall policy.
+        :param filters: a dict containing additional filters to use. e.g.
+                        {'status': ACTIVE}
+
+        :returns: a list of ``munch.Munch`` containing the firewall policy description.
+
+        :raises: ``OpenStackCloudException`` if something goes wrong during the
+            openstack API call.
+        """
+        firewall_policies = self.list_firewall_policies(filters)
+        return _utils._filter_list(firewall_policies, name_or_id, filters)
+
+    def search_firewalls(self, name_or_id=None, filters=None):
+        """Search OpenStack firewalls
+
+        :param name_or_id: Name or id of the desired firewall.
+        :param filters: a dict containing additional filters to use. e.g.
+                        {'status': ACTIVE}
+
+        :returns: a list of ``munch.Munch`` containing the firewall description.
+
+        :raises: ``OpenStackCloudException`` if something goes wrong during the
+            openstack API call.
+        """
+        firewalls = self.list_firewalls(filters)
+        return _utils._filter_list(firewalls, name_or_id, filters)
+
     def search_subnets(self, name_or_id=None, filters=None):
         """Search subnets
 
@@ -1613,6 +1658,51 @@ class OpenStackCloud(
             "/routers.json", params=filters,
             error_message="Error fetching router list")
         return self._get_and_munchify('routers', data)
+
+    def list_firewall_rules(self, filters=None):
+        """List all available firewall rules.
+
+        :param filters: (optional) dict of filter conditions to push down
+        :returns: A list of firewall rules ``munch.Munch``.
+
+        """
+        # Translate None from search interface to empty {} for kwargs below
+        if not filters:
+            filters = {}
+        data = self._network_client.get("/fw/firewall_rules.json",
+                                        params=filters,
+                                        error_message="Error fetching firewall rules list")
+        return meta.get_and_munchify(key=None, data=data)
+
+    def list_firewall_policies(self, filters=None):
+        """List all available firewall policies.
+
+        :param filters: (optional) dict of filter conditions to push down
+        :returns: A list of firewall policies ``munch.Munch``.
+
+        """
+        # Translate None from search interface to empty {} for kwargs below
+        if not filters:
+            filters = {}
+        data = self._network_client.get("/fw/firewall_policies.json",
+                                        params=filters,
+                                        error_message="Error fetching firewall policies list")
+        return meta.get_and_munchify("firewall_policies", data)
+
+    def list_firewalls(self, filters=None):
+        """List all available firewalls.
+
+        :param filters: (optional) dict of filter conditions to push down
+        :returns: A list of firewall ``munch.Munch``.
+
+        """
+        # Translate None from search interface to empty {} for kwargs below
+        if not filters:
+            filters = {}
+        data = self._network_client.get("/fw/firewalls.json",
+                                        params=filters,
+                                        error_message="Error fetching firewalls list")
+        return meta.get_and_munchify(key=None, data=data)
 
     def list_subnets(self, filters=None):
         """List all available subnets.
@@ -2656,6 +2746,54 @@ class OpenStackCloud(
         """
         return _utils._get_entity(self, 'router', name_or_id, filters)
 
+    def get_firewall_rule(self, name_or_id, filters=None):
+        """Get a firewall rule by name or Id.
+
+        :param name_or_id: Name or ID of the firewall rule.
+        :param filters:
+            A dictionary of meta data to use for further filtering. Elements
+            of this dictionary may, themselves, be dictionaries. Example::
+
+                { 'protocol': 'tcp' }
+
+        :returns: A firewall rule ``munch.Munch`` or None if no matching firewall rule is
+        found.
+
+        """
+        return _utils._get_entity(self.search_firewall_rules, name_or_id, filters)
+
+    def get_firewall(self, name_or_id, filters=None):
+        """Get a firewall by name or ID.
+
+        :param name_or_id: Name or ID of the firewall. (None is possible)
+        :param filters:
+            A dictionary of meta data to use for further filtering. Elements
+            of this dictionary may, themselves, be dictionaries. Example::
+
+                { 'status': 'ACTIVE'}
+
+        :returns: A firewall ``munch.Munch`` or None if no matching firewall is
+        found.
+
+        """
+        return _utils._get_entity(self.search_firewalls, name_or_id, filters)
+
+    def get_firewall_policy(self, name_or_id, filters=None):
+        """Get a firewall policy by name or ID.
+
+        :param name_or_id: Name or ID of the firewall policy. (None is possible)
+        :param filters:
+            A dictionary of meta data to use for further filtering. Elements
+            of this dictionary may, themselves, be dictionaries. Example::
+
+                { 'status': 'ACTIVE'}
+
+        :returns: A firewall policy ``munch.Munch`` or None if no matching firewall policy is
+        found.
+
+        """
+        return _utils._get_entity(self.search_firewall_policies, name_or_id, filters)
+
     def get_subnet(self, name_or_id, filters=None):
         """Get a subnet by name or ID.
 
@@ -3129,6 +3267,44 @@ class OpenStackCloud(
                 for chunk in response.iter_content(chunk_size=chunk_size):
                     output_file.write(chunk)
                 return
+
+    def firewall_policy_insert_rule(self, policy_id, body):
+        """Insert a firewall rule to the policy
+
+        :param policy_id: ID of the firewall policy.
+        :param body:
+            JSON example :
+            {
+                "firewall_rule_id": "7bc34b8c-8d3b-4ada-a9c8-1f4c11c65692",
+                "insert_after": "a08ef905-0ff6-4784-8374-175fffe7dade",
+                "insert_before": ""
+            }
+
+        :returns: the rule id.
+
+        """
+        data = self._network_client.put("/fw/firewall_policies/{policy_id}/insert_rule.json".format(policy_id=policy_id),
+                                         json=body)
+
+        return meta.get_and_munchify(key=None, data=data)
+
+    def firewall_policy_remove_rule(self, policy_id, body):
+        """Remove a firewall rule to the policy
+
+        :param policy_id: ID of the firewall policy.
+        :param body:
+            JSON example :
+            {
+                "firewall_rule_id": "7bc34b8c-8d3b-4ada-a9c8-1f4c11c65692"
+            }
+
+        :returns: the rule id.
+
+        """
+        data = self._network_client.put("/fw/firewall_policies/{policy_id}/remove_rule.json".format(policy_id=policy_id),
+                                         json=body)
+
+        return meta.get_and_munchify(key=None, data=data)
 
     def get_floating_ip(self, id, filters=None):
         """Get a floating IP by ID
@@ -7450,6 +7626,67 @@ class OpenStackCloud(
                 return None
             raise
 
+    def create_firewall_rule(self, fwrule_name, fwrule_description, source_ip_address, destination_ip_address, source_port, destination_port, protocol, action, tenant_id=None):
+        """Create a firewall rule.
+
+        :param string fwrule_name:
+           The unique name of the firewall rule. If a non-unique
+           name is supplied, an exception is raised.
+        :param string fwrule_description:
+           The description.
+        :param string source_ip_address:
+           The source ip address.
+        :param string destination_ip_address:
+           The destination ip address.
+        :param string source_port:
+           The source port.
+        :param string destination_port:
+           The destination port.
+        :param string protocol:
+           The protocol.
+        :param string action:
+           The action.
+        :param string tenant_id:
+           The tenant ID
+
+        :returns: The new firewall rule object.
+        :raises: OpenStackCloudException on operation error.
+        """
+
+        firewall_rule = self.get_firewall_rule(fwrule_name)
+        if firewall_rule:
+            raise OpenStackCloudException(
+                "Firewall rule %s already exist." % firewall_rule)
+
+        # The body of the neutron message for the firewall rule we wish to create.
+        # This includes attributes that are required or have defaults.
+        firewall_rule = {
+            'name': fwrule_name,
+            'description': fwrule_description,
+            'protocol': protocol,
+            'action': action
+        }
+
+        # Add optional attributes to the message.
+        if source_ip_address:
+            firewall_rule['source_ip_address'] = source_ip_address
+        if destination_ip_address:
+            firewall_rule['destination_ip_address'] = destination_ip_address
+        if source_port:
+            # Be friendly on source_port and allow strings
+            if isinstance(source_port, six.string_types):
+                firewall_rule['source_port'] = source_port
+        if destination_port:
+            # Be friendly on destination_port and allow strings
+            if isinstance(destination_port, six.string_types):
+                firewall_rule['destination_port'] = destination_port
+        if tenant_id:
+            firewall_rule['tenant_id'] = tenant_id
+
+        data = self._network_client.post("/fw/firewall_rules.json", json={"firewall_rule": firewall_rule})
+
+        return meta.get_and_munchify(key=None, data=data)
+
     def create_subnet(self, network_name_or_id, cidr=None, ip_version=4,
                       enable_dhcp=False, subnet_name=None, tenant_id=None,
                       allocation_pools=None,
@@ -7588,6 +7825,27 @@ class OpenStackCloud(
                                          json={"subnet": subnet})
 
         return self._get_and_munchify('subnet', data)
+
+    def delete_firewall_rule(self, name_or_id):
+        """Delete a firewall rule.
+
+        If a name, instead of a unique UUID, is supplied, it is possible
+        that we could find more than one matching firewall rule since names are
+        not required to be unique. An error will be raised in this case.
+
+        :param name_or_id: Name or ID of the subnet being deleted.
+
+        :returns: True if delete succeeded, False otherwise.
+
+        :raises: OpenStackCloudException on operation error.
+        """
+        firewall_rule = self.get_firewall_rule(name_or_id)
+        if not firewall_rule:
+            self.log.debug("firewall_rule %s not found for deleting", name_or_id)
+            return False
+
+        self._network_client.delete("/fw/firewall_rules/{fwrule_id}.json".format(fwrule_id=name_or_id))
+        return True
 
     def delete_subnet(self, name_or_id):
         """Delete a subnet.
