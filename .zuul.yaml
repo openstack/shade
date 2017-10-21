@@ -1,8 +1,45 @@
+- job:
+    name: shade-tox-py27-tips
+    parent: openstack-tox-py27
+    description: |
+      Run tox python 27 unittests against master of important libs
+    vars:
+      tox_install_siblings: true
+    # shade in required-projects so that os-client-config and keystoneauth
+    # can add the job as well
+    required-projects:
+      - openstack-infra/shade
+      - openstack/keystoneauth
+      - openstack/os-client-config
+
+- job:
+    name: shade-tox-py35-tips
+    parent: openstack-tox-py35
+    description: |
+      Run tox python 35 unittests against master of important libs
+    vars:
+      tox_install_siblings: true
+    # shade in required-projects so that os-client-config and keystoneauth
+    # can add the job as well
+    required-projects:
+      - openstack-infra/shade
+      - openstack/keystoneauth
+      - openstack/os-client-config
+
+- project-template:
+    name: shade-tox-tips
+    check:
+      jobs:
+        - shade-tox-py27-tips
+        - shade-tox-py35-tips
+    gate:
+      jobs:
+        - shade-tox-py27-tips
+        - shade-tox-py35-tips
+
 - project:
     name: openstack-infra/shade
     templates:
       - publish-to-pypi
       - publish-openstack-sphinx-docs
-    check:
-      jobs:
-        - openstack-tox-py35
+      - shade-tox-tips
