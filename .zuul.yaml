@@ -196,11 +196,23 @@
     vars:
       tox_install_siblings: True
 
+- project-template:
+    name: shade-functional-tips
+    check:
+      jobs:
+        - shade-functional-devstack-tips
+        - shade-functional-devstack-tips-python3
+    gate:
+      jobs:
+        - shade-functional-devstack-tips
+        - shade-functional-devstack-tips-python3
+
 - project:
     name: openstack-infra/shade
     templates:
       - publish-to-pypi
       - publish-openstack-sphinx-docs
+      - shade-functional-tips
       - shade-tox-tips
     check:
       jobs:
@@ -210,12 +222,8 @@
         - shade-functional-devstack-legacy
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
-        - shade-functional-devstack-tips
-        - shade-functional-devstack-tips-python3
     gate:
       jobs:
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-python3
-        - shade-functional-devstack-tips
-        - shade-functional-devstack-tips-python3
