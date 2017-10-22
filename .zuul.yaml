@@ -130,12 +130,11 @@
         SHADE_TOX_PYTHON: python3
 
 - job:
-    name: shade-functional-devstack-libs
+    name: shade-functional-devstack-tips
     parent: shade-functional-devstack
     description: |
       Run shade functional tests with tips of library dependencies against a
       master devstack.
-    voting: false
     required-projects:
       - name: openstack/keystoneauth
       - name: openstack/os-client-config
@@ -143,12 +142,11 @@
       tox_install_siblings: True
 
 - job:
-    name: shade-functional-devstack-libs-python3
-    parent: shade-functional-devstack-libs
+    name: shade-functional-devstack-tips-python3
+    parent: shade-functional-devstack-tips
     description: |
       Run shade functional tests with tips of library dependencies using
       python3 against a master devstack.
-    voting: false
     vars:
       tox_environment:
         SHADE_TOX_PYTHON: python3
@@ -210,12 +208,14 @@
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-legacy
-        - shade-functional-devstack-libs
-        - shade-functional-devstack-libs-python3
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
+        - shade-functional-devstack-tips
+        - shade-functional-devstack-tips-python3
     gate:
       jobs:
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-python3
+        - shade-functional-devstack-tips
+        - shade-functional-devstack-tips-python3
