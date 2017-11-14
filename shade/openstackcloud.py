@@ -6575,8 +6575,6 @@ class OpenStackCloud(
                     "Server Group {group} was requested but was not found"
                     " on the cloud".format(group=group))
             hints['group'] = group_obj['id']
-        if hints:
-            kwargs['os:scheduler_hints'] = hints
         kwargs.setdefault('max_count', kwargs.get('max_count', 1))
         kwargs.setdefault('min_count', kwargs.get('min_count', 1))
 
@@ -6672,8 +6670,11 @@ class OpenStackCloud(
         if 'block_device_mapping_v2' in kwargs:
             endpoint = '/os-volumes_boot'
         with _utils.shade_exceptions("Error in creating instance"):
+            server_json = {'server': kwargs}
+            if hints:
+                server_json['os:scheduler_hints'] = hints
             data = self._compute_client.post(
-                endpoint, json={'server': kwargs})
+                endpoint, json=server_json)
             server = self._get_and_munchify('server', data)
             admin_pass = server.get('adminPass') or kwargs.get('admin_pass')
             if not wait:
