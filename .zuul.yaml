@@ -54,7 +54,7 @@
       - name: openstack/heat
       - name: openstack/swift
     roles:
-      - zuul: openstack-infra/devstack
+      - zuul: openstack-dev/devstack
     timeout: 9000
     vars:
       devstack_localrc:
