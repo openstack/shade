@@ -396,7 +396,7 @@ class OpenStackCloud(
           cloud = shade.openstack_cloud(cloud='example')
           # Work normally
           servers = cloud.list_servers()
-          cloud2 = cloud.connect_as(dict(name='different-project'))
+          cloud2 = cloud.connect_as_project('different-project')
           # Work in different-project
           servers = cloud2.list_servers()
 
