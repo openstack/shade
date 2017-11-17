@@ -4875,6 +4875,9 @@ class OpenStackCloud(
                     self.log.debug(
                         "Image Task %s imported %s in %s",
                         glance_task.id, image_id, (time.time() - start))
+                    # Clean up after ourselves. The object we created is not
+                    # needed after the import is done.
+                    self.delete_object(container, name)
                     return self.get_image(image_id)
                 elif status['status'] == 'failure':
                     if status['message'] == IMAGE_ERROR_396:
@@ -4882,6 +4885,11 @@ class OpenStackCloud(
                             '/tasks', data=task_args)
                         self.list_images.invalidate(self)
                     else:
+                        # Clean up after ourselves. The image did not import
+                        # and this isn't a 'just retry' error - glance didn't
+                        # like the content. So we don't want to keep it for
+                        # next time.
+                        self.delete_object(container, name)
                         raise OpenStackCloudException(
                             "Image creation failed: {message}".format(
                                 message=status['message']),
