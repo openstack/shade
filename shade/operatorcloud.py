@@ -34,14 +34,16 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
 
     def list_nics(self):
         with _utils.shade_exceptions("Error fetching machine port list"):
-            return self.manager.submit_task(_tasks.MachinePortList())
+            return self._normalize_machines(
+                self.manager.submit_task(_tasks.MachinePortList()))
 
     def list_nics_for_machine(self, uuid):
         with _utils.shade_exceptions(
                 "Error fetching port list for node {node_id}".format(
                 node_id=uuid)):
-            return self.manager.submit_task(
-                _tasks.MachineNodePortList(node_id=uuid))
+            return self._normalize_machines(
+                self.manager.submit_task(
+                    _tasks.MachineNodePortList(node_id=uuid)))
 
     def get_nic_by_mac(self, mac):
         try:

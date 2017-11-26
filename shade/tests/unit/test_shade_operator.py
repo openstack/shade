@@ -21,7 +21,6 @@ import os_client_config as occ
 from os_client_config import cloud_config
 import shade
 from shade import exc
-from shade import meta
 from shade.tests import fakes
 from shade.tests.unit import base
 
@@ -33,37 +32,6 @@ class TestShadeOperator(base.RequestsMockTestCase):
 
     def test_operator_cloud(self):
         self.assertIsInstance(self.op_cloud, shade.OperatorCloud)
-
-    @mock.patch.object(shade.OperatorCloud, 'ironic_client')
-    def test_list_nics(self, mock_client):
-        port1 = fakes.FakeMachinePort(1, "aa:bb:cc:dd", "node1")
-        port2 = fakes.FakeMachinePort(2, "dd:cc:bb:aa", "node2")
-        port_list = [port1, port2]
-        port_dict_list = meta.obj_list_to_munch(port_list)
-
-        mock_client.port.list.return_value = port_list
-        nics = self.op_cloud.list_nics()
-
-        self.assertTrue(mock_client.port.list.called)
-        self.assertEqual(port_dict_list, nics)
-
-    @mock.patch.object(shade.OperatorCloud, 'ironic_client')
-    def test_list_nics_failure(self, mock_client):
-        mock_client.port.list.side_effect = Exception()
-        self.assertRaises(exc.OpenStackCloudException,
-                          self.op_cloud.list_nics)
-
-    @mock.patch.object(shade.OperatorCloud, 'ironic_client')
-    def test_list_nics_for_machine(self, mock_client):
-        mock_client.node.list_ports.return_value = []
-        self.op_cloud.list_nics_for_machine("123")
-        mock_client.node.list_ports.assert_called_with(node_id="123")
-
-    @mock.patch.object(shade.OperatorCloud, 'ironic_client')
-    def test_list_nics_for_machine_failure(self, mock_client):
-        mock_client.node.list_ports.side_effect = Exception()
-        self.assertRaises(exc.OpenStackCloudException,
-                          self.op_cloud.list_nics_for_machine, None)
 
     @mock.patch.object(shade.OpenStackCloud, '_image_client')
     def test_get_image_name(self, mock_client):
