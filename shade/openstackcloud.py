@@ -3383,7 +3383,8 @@ class OpenStackCloud(
         return True
 
     def create_network(self, name, shared=False, admin_state_up=True,
-                       external=False, provider=None, project_id=None):
+                       external=False, provider=None, project_id=None,
+                       availability_zone_hints=None):
         """Create a network.
 
         :param string name: Name of the network being created.
@@ -3395,6 +3396,7 @@ class OpenStackCloud(
            { 'network_type': 'vlan', 'segmentation_id': 'vlan1' }
         :param string project_id: Specify the project ID this network
             will be created on (admin-only).
+        :param list availability_zone_hints: A list of availability zone hints.
 
         :returns: The network object.
         :raises: OpenStackCloudException on operation error.
@@ -3409,6 +3411,16 @@ class OpenStackCloud(
 
         if project_id is not None:
             network['tenant_id'] = project_id
+
+        if availability_zone_hints is not None:
+            if not isinstance(availability_zone_hints, list):
+                raise OpenStackCloudException(
+                    "Parameter 'availability_zone_hints' must be a list")
+            if not self._has_neutron_extension('network_availability_zone'):
+                raise OpenStackCloudUnavailableExtension(
+                    'network_availability_zone extension is not available on '
+                    'target cloud')
+            network['availability_zone_hints'] = availability_zone_hints
 
         if provider:
             if not isinstance(provider, dict):
@@ -4245,7 +4257,8 @@ class OpenStackCloud(
 
     def create_router(self, name=None, admin_state_up=True,
                       ext_gateway_net_id=None, enable_snat=None,
-                      ext_fixed_ips=None, project_id=None):
+                      ext_fixed_ips=None, project_id=None,
+                      availability_zone_hints=None):
         """Create a logical router.
 
         :param string name: The router name.
@@ -4263,6 +4276,7 @@ class OpenStackCloud(
                 }
               ]
         :param string project_id: Project ID for the router.
+        :param list availability_zone_hints: A list of availability zone hints.
 
         :returns: The router object.
         :raises: OpenStackCloudException on operation error.
@@ -4279,6 +4293,15 @@ class OpenStackCloud(
         )
         if ext_gw_info:
             router['external_gateway_info'] = ext_gw_info
+        if availability_zone_hints is not None:
+            if not isinstance(availability_zone_hints, list):
+                raise OpenStackCloudException(
+                    "Parameter 'availability_zone_hints' must be a list")
+            if not self._has_neutron_extension('router_availability_zone'):
+                raise OpenStackCloudUnavailableExtension(
+                    'router_availability_zone extension is not available on '
+                    'target cloud')
+            router['availability_zone_hints'] = availability_zone_hints
 
         data = self._network_client.post(
             "/routers.json", json={"router": router},
