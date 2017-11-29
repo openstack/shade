@@ -22,7 +22,6 @@ import time
 import types
 
 import keystoneauth1.exceptions
-import simplejson
 import six
 
 from shade import _log
@@ -162,7 +161,7 @@ class RequestTask(BaseTask):
 
         try:
             result_json = self._response.json()
-        except (simplejson.scanner.JSONDecodeError, ValueError) as e:
+        except Exception as e:
             result_json = self._response.text
             self._client.log.debug(
                 'Could not decode json in response: %(e)s', {'e': str(e)})

@@ -1384,6 +1384,33 @@ class TestBaremetalNode(base.IronicTestCase):
 
         self.assert_calls()
 
+    def test_unregister_machine_locked_timeout(self):
+        mac_address = self.fake_baremetal_port['address']
+        nics = [{'mac': mac_address}]
+        self.fake_baremetal_node['provision_state'] = 'available'
+        self.fake_baremetal_node['reservation'] = 'conductor99'
+        self.register_uris([
+            dict(
+                method='GET',
+                uri=self.get_mock_url(
+                    resource='nodes',
+                    append=[self.fake_baremetal_node['uuid']]),
+                json=self.fake_baremetal_node),
+            dict(
+                method='GET',
+                uri=self.get_mock_url(
+                    resource='nodes',
+                    append=[self.fake_baremetal_node['uuid']]),
+                json=self.fake_baremetal_node),
+        ])
+        self.assertRaises(
+            exc.OpenStackCloudException,
+            self.op_cloud.unregister_machine,
+            nics,
+            self.fake_baremetal_node['uuid'],
+            timeout=0.001)
+        self.assert_calls()
+
     def test_unregister_machine_unavailable(self):
         # This is a list of invalid states that the method
         # should fail on.

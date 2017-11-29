@@ -27,26 +27,6 @@ class MachinePortGetByAddress(task_manager.Task):
         return client.ironic_client.port.get_by_address(**self.args)
 
 
-class MachinePortCreate(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.port.create(**self.args)
-
-
-class MachinePortDelete(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.port.delete(**self.args)
-
-
-class MachineNodeList(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.list(**self.args)
-
-
-class MachineNodePortList(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.list_ports(**self.args)
-
-
 class MachineNodeUpdate(task_manager.Task):
     def main(self, client):
         return client.ironic_client.node.update(**self.args)
@@ -55,13 +35,3 @@ class MachineNodeUpdate(task_manager.Task):
 class MachineNodeValidate(task_manager.Task):
     def main(self, client):
         return client.ironic_client.node.validate(**self.args)
-
-
-class MachineSetMaintenance(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.set_maintenance(**self.args)
-
-
-class MachineSetPower(task_manager.Task):
-    def main(self, client):
-        return client.ironic_client.node.set_power_state(**self.args)

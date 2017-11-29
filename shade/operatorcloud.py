@@ -39,14 +39,22 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                                           error_message=msg)
 
     def list_nics_for_machine(self, uuid):
-        with _utils.shade_exceptions(
-                "Error fetching port list for node {node_id}".format(
-                node_id=uuid)):
-            return self._normalize_machines(
-                self.manager.submit_task(
-                    _tasks.MachineNodePortList(node_id=uuid)))
+        """Returns a list of ports present on the machine node.
+
+        :param uuid: String representing machine UUID value in
+                     order to identify the machine.
+        :returns: A dictionary containing containing a list of ports,
+                  associated with the label "ports".
+        """
+        msg = "Error fetching port list for node {node_id}".format(
+            node_id=uuid)
+        url = "/nodes/{node_id}/ports".format(node_id=uuid)
+        return self._baremetal_client.get(url,
+                                          microversion="1.6",
+                                          error_message=msg)
 
     def get_nic_by_mac(self, mac):
+        # TODO(TheJulia): Query /ports?address=mac when converting
         try:
             return self.manager.submit_task(
                 _tasks.MachineNodePortGet(port_id=mac))
@@ -54,8 +62,11 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
             return None
 
     def list_machines(self):
-        return self._normalize_machines(
-            self.manager.submit_task(_tasks.MachineNodeList()))
+        msg = "Error fetching machine node list"
+        data = self._baremetal_client.get("/nodes",
+                                          microversion="1.6",
+                                          error_message=msg)
+        return self._get_and_munchify('nodes', data)
 
     def get_machine(self, name_or_id):
         """Get Machine by name or uuid
@@ -92,10 +103,12 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                   if the node is not found.
         """
         try:
-            port = self.manager.submit_task(
-                _tasks.MachinePortGetByAddress(address=mac))
-            return self.get_machine(port.node_uuid)
-        except ironic_exceptions.ClientException:
+            port_url = '/ports/detail?address={mac}'.format(mac=mac)
+            port = self._baremetal_client.get(port_url, microversion=1.6)
+            machine_url = '/nodes/{machine}'.format(
+                machine=port['ports'][0]['node_uuid'])
+            return self._baremetal_client.get(machine_url, microversion=1.6)
+        except Exception:
             return None
 
     def inspect_machine(self, name_or_id, wait=False, timeout=3600):
@@ -209,7 +222,8 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                   baremetal node.
         """
 
-        msg = ("Baremetal machine node failed failed to be created.")
+        msg = ("Baremetal machine node failed to be created.")
+        port_msg = ("Baremetal machine port failed to be created.")
 
         url = '/nodes'
         # TODO(TheJulia): At some point we need to figure out how to
@@ -223,9 +237,11 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         created_nics = []
         try:
             for row in nics:
-                nic = self.manager.submit_task(
-                    _tasks.MachinePortCreate(address=row['mac'],
-                                             node_uuid=machine['uuid']))
+                payload = {'address': row['mac'],
+                           'node_uuid': machine['uuid']}
+                nic = self._baremetal_client.post('/ports',
+                                                  json=payload,
+                                                  error_message=port_msg)
                 created_nics.append(nic['uuid'])
 
         except Exception as e:
@@ -234,9 +250,13 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
             try:
                 for uuid in created_nics:
                     try:
-                        self.manager.submit_task(
-                            _tasks.MachinePortDelete(
-                                port_id=uuid))
+                        port_url = '/ports/{uuid}'.format(uuid=uuid)
+                        # NOTE(TheJulia): Added in hope that it is logged.
+                        port_msg = ('Failed to delete port {port} for node'
+                                    '{node}').format(port=uuid,
+                                                     node=machine['uuid'])
+                        self._baremetal_client.delete(port_url,
+                                                      error_message=port_msg)
                     except Exception:
                         pass
             finally:
@@ -347,14 +367,27 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                 "Error unregistering node '%s' due to current provision "
                 "state '%s'" % (uuid, machine['provision_state']))
 
+        # NOTE(TheJulia) There is a high possibility of a lock being present
+        # if the machine was just moved through the state machine. This was
+        # previously concealed by exception retry logic that detected the
+        # failure, and resubitted the request in python-ironicclient.
+        try:
+            self.wait_for_baremetal_node_lock(machine, timeout=timeout)
+        except OpenStackCloudException as e:
+            raise OpenStackCloudException("Error unregistering node '%s': "
+                                          "Exception occured while waiting "
+                                          "to be able to proceed: %s"
+                                          % (machine['uuid'], e))
+
         for nic in nics:
-            with _utils.shade_exceptions(
-                    "Error removing NIC {nic} from baremetal API for node "
-                    "{uuid}".format(nic=nic, uuid=uuid)):
-                port = self.manager.submit_task(
-                    _tasks.MachinePortGetByAddress(address=nic['mac']))
-                self.manager.submit_task(
-                    _tasks.MachinePortDelete(port_id=port.uuid))
+            port_msg = ("Error removing NIC {nic} from baremetal API for "
+                        "node {uuid}").format(nic=nic, uuid=uuid)
+            port_url = '/ports/detail?address={mac}'.format(mac=nic['mac'])
+            port = self._baremetal_client.get(port_url, microversion=1.6,
+                                              error_message=port_msg)
+            port_url = '/ports/{uuid}'.format(uuid=port['ports'][0]['uuid'])
+            self._baremetal_client.delete(port_url, error_message=port_msg)
+
         with _utils.shade_exceptions(
                 "Error unregistering machine {node_id} from the baremetal "
                 "API".format(node_id=uuid)):
@@ -639,25 +672,17 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
 
         :returns: None
         """
-        with _utils.shade_exceptions(
-            "Error setting machine maintenance state to {state} on node "
-            "{node}".format(state=state, node=name_or_id)
-        ):
-            if state:
-                result = self.manager.submit_task(
-                    _tasks.MachineSetMaintenance(node_id=name_or_id,
-                                                 state='true',
-                                                 maint_reason=reason))
-            else:
-                result = self.manager.submit_task(
-                    _tasks.MachineSetMaintenance(node_id=name_or_id,
-                                                 state='false'))
-            if result is not None:
-                raise OpenStackCloudException(
-                    "Failed setting machine maintenance state to %s "
-                    "on node %s. Received: %s" % (
-                        state, name_or_id, result))
-            return None
+        msg = ("Error setting machine maintenance state to {state} on node "
+               "{node}").format(state=state, node=name_or_id)
+        url = '/nodes/{name_or_id}/maintenance'.format(name_or_id=name_or_id)
+        if state:
+            payload = {'reason': reason}
+            self._baremetal_client.put(url,
+                                       json=payload,
+                                       error_message=msg)
+        else:
+            self._baremetal_client.delete(url, error_message=msg)
+        return None
 
     def remove_machine_from_maintenance(self, name_or_id):
         """Remove Baremetal Machine from Maintenance State
@@ -694,18 +719,19 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
 
         :returns: None
         """
-        with _utils.shade_exceptions(
-            "Error setting machine power state to {state} on node "
-            "{node}".format(state=state, node=name_or_id)
-        ):
-            power = self.manager.submit_task(
-                _tasks.MachineSetPower(node_id=name_or_id,
-                                       state=state))
-            if power is not None:
-                raise OpenStackCloudException(
-                    "Failed setting machine power state %s on node %s. "
-                    "Received: %s" % (state, name_or_id, power))
-            return None
+        msg = ("Error setting machine power state to {state} on node "
+               "{node}").format(state=state, node=name_or_id)
+        url = '/nodes/{name_or_id}/states/power'.format(name_or_id=name_or_id)
+        if 'reboot' in state:
+            desired_state = 'rebooting'
+        else:
+            desired_state = 'power {state}'.format(state=state)
+        payload = {'target': desired_state}
+        self._baremetal_client.put(url,
+                                   json=payload,
+                                   error_message=msg,
+                                   microversion="1.6")
+        return None
 
     def set_machine_power_on(self, name_or_id):
         """Activate baremetal machine power

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from keystoneauth1 import plugin
-
 import shade
 from shade.tests.unit import base
 
@@ -34,9 +32,6 @@ class TestShadeOperatorNoAuth(base.RequestsMockTestCase):
         # By clearing the URI registry, we remove all calls to a keystone
         # catalog or getting a token
         self._uri_registry.clear()
-        # TODO(mordred) Remove this if with next KSA release
-        if hasattr(plugin.BaseAuthPlugin, 'get_endpoint_data'):
-            self.use_ironic()
         self.register_uris([
             dict(method='GET',
                  uri=self.get_mock_url(
@@ -50,9 +45,14 @@ class TestShadeOperatorNoAuth(base.RequestsMockTestCase):
 
         The new way of doing this is with the keystoneauth none plugin.
         """
+        # NOTE(TheJulia): When we are using the python-ironicclient
+        # library, the library will automatically prepend the URI path
+        # with 'v1'. As such, since we are overriding the endpoint,
+        # we must explicitly do the same as we move away from the
+        # client library.
         self.cloud_noauth = shade.operator_cloud(
             auth_type='none',
-            baremetal_endpoint_override="https://bare-metal.example.com")
+            baremetal_endpoint_override="https://bare-metal.example.com/v1")
 
         self.cloud_noauth.list_machines()
 
@@ -66,7 +66,7 @@ class TestShadeOperatorNoAuth(base.RequestsMockTestCase):
         self.cloud_noauth = shade.operator_cloud(
             auth_type='admin_token',
             auth=dict(
-                endpoint='https://bare-metal.example.com',
+                endpoint='https://bare-metal.example.com/v1',
                 token='ignored'))
 
         self.cloud_noauth.list_machines()
