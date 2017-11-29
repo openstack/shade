@@ -92,3 +92,30 @@ class TestBaremetalPort(base.IronicTestCase):
                           self.op_cloud.list_nics_for_machine,
                           self.fake_baremetal_node['uuid'])
         self.assert_calls()
+
+    def test_get_nic_by_mac(self):
+        mac = self.fake_baremetal_port['address']
+        query = 'detail?address=%s' % mac
+        self.register_uris([
+            dict(method='GET',
+                 uri=self.get_mock_url(resource='ports', append=[query]),
+                 json={'ports': [self.fake_baremetal_port]}),
+        ])
+
+        return_value = self.op_cloud.get_nic_by_mac(mac)
+
+        self.assertEqual(self.fake_baremetal_port, return_value)
+        self.assert_calls()
+
+    def test_get_nic_by_mac_failure(self):
+        mac = self.fake_baremetal_port['address']
+        query = 'detail?address=%s' % mac
+        self.register_uris([
+            dict(method='GET',
+                 uri=self.get_mock_url(resource='ports', append=[query]),
+                 json={'ports': []}),
+        ])
+
+        self.assertIsNone(self.op_cloud.get_nic_by_mac(mac))
+
+        self.assert_calls()

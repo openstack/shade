@@ -56,8 +56,9 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
     def get_nic_by_mac(self, mac):
         # TODO(TheJulia): Query /ports?address=mac when converting
         try:
-            return self.manager.submit_task(
-                _tasks.MachineNodePortGet(port_id=mac))
+            return self._normalize_machine(
+                self.manager.submit_task(
+                    _tasks.MachinePortGetByAddress(address=mac)))
         except ironic_exceptions.ClientException:
             return None
 
