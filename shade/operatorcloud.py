@@ -415,9 +415,7 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         """Patch Machine Information
 
         This method allows for an interface to manipulate node entries
-        within Ironic.  Specifically, it is a pass-through for the
-        ironicclient.nodes.update interface which allows the Ironic Node
-        properties to be updated.
+        within Ironic.
 
         :param node_id: The server object to attach to.
         :param patch:

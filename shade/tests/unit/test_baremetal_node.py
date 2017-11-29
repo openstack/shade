@@ -882,9 +882,7 @@ class TestBaremetalNode(base.IronicTestCase):
         node_uuid = self.fake_baremetal_node['uuid']
         # TODO(TheJulia): There is a lot of duplication
         # in testing creation. Surely this hsould be a helper
-        # or something. We should fix this, after we have
-        # ironicclient removed, as in the mean time visibility
-        # will be helpful.
+        # or something. We should fix this.
         node_to_post = {
             'chassis_uuid': None,
             'driver': None,
@@ -915,11 +913,10 @@ class TestBaremetalNode(base.IronicTestCase):
         self.assertDictEqual(self.fake_baremetal_node, return_value)
         self.assert_calls()
 
-    # TODO(TheJulia): After we remove ironicclient,
-    # we need to de-duplicate these tests. Possibly
-    # a dedicated class, although we should do it then
-    # as we may find differences that need to be accounted
-    # for newer microversions.
+    # TODO(TheJulia): We need to de-duplicate these tests.
+    # Possibly a dedicated class, although we should do it
+    # then as we may find differences that need to be
+    # accounted for newer microversions.
     def test_register_machine_enroll(self):
         mac_address = '00:01:02:03:04:05'
         nics = [{'mac': mac_address}]

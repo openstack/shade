@@ -188,7 +188,7 @@ class LegacyClientFactoryMixin(object):
                             endpoint_data.max_microversion)))
 
         return self._create_legacy_client(
-            'ironic', 'baremetal', deprecated=False,
+            'ironic', 'baremetal',
             module_name='ironicclient.client.Client',
             os_ironic_api_version=self._get_legacy_ironic_microversion())
 

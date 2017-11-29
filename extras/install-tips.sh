@@ -16,7 +16,6 @@
 
 for lib in \
         python-keystoneclient \
-        python-ironicclient \
         os-client-config \
         keystoneauth
 do

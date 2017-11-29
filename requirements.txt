@@ -11,9 +11,6 @@ ipaddress>=1.0.16;python_version<'3.3' # PSF
 os-client-config>=1.28.0 # Apache-2.0
 # These two are here to prevent issues with version pin mismatches from our
 # client library transitive depends.
-# Babel can be removed when ironicclient is removed (because of openstackclient
-# transitive depend)
-Babel!=2.4.0,>=2.3.4 # BSD
 requestsexceptions>=1.2.0 # Apache-2.0
 six>=1.10.0 # MIT
 futures>=3.0.0;python_version=='2.7' or python_version=='2.6' # BSD
@@ -21,6 +18,5 @@ iso8601>=0.1.11 # MIT
 
 keystoneauth1>=3.2.0 # Apache-2.0
 netifaces>=0.10.4 # MIT
-python-ironicclient>=1.14.0 # Apache-2.0
 
 dogpile.cache>=0.6.2 # BSD
