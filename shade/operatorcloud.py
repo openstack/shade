@@ -15,11 +15,8 @@ import iso8601
 import jsonpatch
 import munch
 
-from ironicclient import exceptions as ironic_exceptions
-
 from shade.exc import *  # noqa
 from shade import openstackcloud
-from shade import _tasks
 from shade import _utils
 
 
@@ -54,13 +51,14 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                                           error_message=msg)
 
     def get_nic_by_mac(self, mac):
-        # TODO(TheJulia): Query /ports?address=mac when converting
         try:
-            return self._normalize_machine(
-                self.manager.submit_task(
-                    _tasks.MachinePortGetByAddress(address=mac)))
-        except ironic_exceptions.ClientException:
-            return None
+            url = '/ports/detail?address=%s' % mac
+            data = self._baremetal_client.get(url)
+            if len(data['ports']) == 1:
+                return data['ports'][0]
+        except Exception:
+            pass
+        return None
 
     def list_machines(self):
         msg = "Error fetching machine node list"
@@ -568,14 +566,20 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                 )
 
     def validate_node(self, uuid):
-        with _utils.shade_exceptions():
-            ifaces = self.manager.submit_task(
-                _tasks.MachineNodeValidate(node_uuid=uuid))
+        # TODO(TheJulia): There are soooooo many other interfaces
+        # that we can support validating, while these are essential,
+        # we should support more.
+        # TODO(TheJulia): Add a doc string :(
+        msg = ("Failed to query the API for validation status of "
+               "node {node_id}").format(node_id=uuid)
+        url = '/nodes/{node_id}/validate'.format(node_id=uuid)
+        ifaces = self._baremetal_client.get(url, error_message=msg)
 
-        if not ifaces.deploy or not ifaces.power:
+        if not ifaces['deploy'] or not ifaces['power']:
             raise OpenStackCloudException(
                 "ironic node %s failed to validate. "
-                "(deploy: %s, power: %s)" % (ifaces.deploy, ifaces.power))
+                "(deploy: %s, power: %s)" % (ifaces['deploy'],
+                                             ifaces['power']))
 
     def node_set_provision_state(self,
                                  name_or_id,
