@@ -670,6 +670,7 @@ class TestBaremetalNode(base.IronicTestCase):
 
     def test_node_set_provision_state_wait_timeout_fails(self):
         # Intentionally time out.
+        self.fake_baremetal_node['provision_state'] = 'deploy wait'
         self.register_uris([
             dict(
                 method='PUT',
