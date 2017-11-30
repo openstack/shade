@@ -57,24 +57,25 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         return self._normalize_machines(
             self.manager.submit_task(_tasks.MachineNodeList()))
 
-    def get_machine(self, name_or_id, version='1.6'):
+    def get_machine(self, name_or_id):
         """Get Machine by name or uuid
 
         Search the baremetal host out by utilizing the supplied id value
         which can consist of a name or UUID.
 
         :param name_or_id: A node name or UUID that will be looked up.
-        :param string version: String value, defaulting to ``1.6``, which
-                               represents the version to transmit to the
-                               baremetal service to govern the service's
-                               behavior. Expect this version to increment
-                               as new features are added, which will result
-                               in additional fields being exposed to the
-                               caller.
 
         :returns: ``munch.Munch`` representing the node found or None if no
                   nodes are found.
         """
+        # NOTE(TheJulia): This is the initial microversion shade support for
+        # ironic was created around. Ironic's default behavior for newer
+        # versions is to expose the field, but with a value of None for
+        # calls by a supported, yet older microversion.
+        # Consensus for moving forward with microversion handling in shade
+        # seems to be to take the same approach, although ironic's API
+        # does it for the user.
+        version = "1.6"
         try:
             url = '/nodes/{node_id}'.format(node_id=name_or_id)
             return self._normalize_machine(
@@ -547,8 +548,7 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
                                  state,
                                  configdrive=None,
                                  wait=False,
-                                 timeout=3600,
-                                 version="1.6"):
+                                 timeout=3600):
         """Set Node Provision State
 
         Enables a user to provision a Machine and optionally define a
@@ -571,21 +571,16 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         :param integer timeout: Integer value, defaulting to 3600 seconds,
                                 representing the amount of time to wait for
                                 the desire end state to be reached.
-        :param string version: String value, defaulting to ``1.6``, which
-                               represents the version to transmit to the
-                               baremetal service to govern the service's
-                               behavior. Newer versions may be used,
-                               as the default is set to ensure consistent
-                               behavior for users, however as direct calling
-                               methods in this library are updated, they will
-                               explicitly call this method with the versions
-                               that they support.
 
         :raises: OpenStackCloudException on operation error.
 
         :returns: ``munch.Munch`` representing the current state of the machine
                   upon exit of the method.
         """
+        # NOTE(TheJulia): Default microversion for this call is 1.6.
+        # Setting locally until we have determined our master plan regarding
+        # microversion handling.
+        version = "1.6"
         msg = ("Baremetal machine node failed change provision state to "
                "{state}".format(state=state))
 
