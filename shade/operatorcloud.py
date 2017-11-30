@@ -56,22 +56,29 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         return self._normalize_machines(
             self.manager.submit_task(_tasks.MachineNodeList()))
 
-    def get_machine(self, name_or_id):
+    def get_machine(self, name_or_id, version='1.6'):
         """Get Machine by name or uuid
 
         Search the baremetal host out by utilizing the supplied id value
         which can consist of a name or UUID.
 
         :param name_or_id: A node name or UUID that will be looked up.
+        :param string version: String value, defaulting to ``1.6``, which
+                               represents the version to transmit to the
+                               baremetal service to govern the service's
+                               behavior. Expect this version to increment
+                               as new features are added, which will result
+                               in additional fields being exposed to the
+                               caller.
 
         :returns: ``munch.Munch`` representing the node found or None if no
                   nodes are found.
         """
         try:
+            url = '/nodes/{node_id}'.format(node_id=name_or_id)
             return self._normalize_machine(
-                self.manager.submit_task(
-                    _tasks.MachineNodeGet(node_id=name_or_id)))
-        except ironic_exceptions.ClientException:
+                self._baremetal_client.get(url, microversion=version))
+        except Exception:
             return None
 
     def get_machine_by_mac(self, mac):
@@ -85,8 +92,7 @@ class OperatorCloud(openstackcloud.OpenStackCloud):
         try:
             port = self.manager.submit_task(
                 _tasks.MachinePortGetByAddress(address=mac))
-            return self.manager.submit_task(
-                _tasks.MachineNodeGet(node_id=port.node_uuid))
+            return self.get_machine(port.node_uuid)
         except ironic_exceptions.ClientException:
             return None
 
