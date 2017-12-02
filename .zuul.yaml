@@ -214,6 +214,8 @@
       - shade-tox-tips
     check:
       jobs:
+        - bifrost-integration-tinyipa
+        - bifrost-integration-tinyipa-opensuse-423
         - shade-ansible-devel-functional-devstack
         - shade-ansible-functional-devstack
         - shade-functional-devstack
@@ -222,6 +224,8 @@
         - shade-functional-devstack-python3
     gate:
       jobs:
+        - bifrost-integration-tinyipa
+        - bifrost-integration-tinyipa-opensuse-423
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-python3
