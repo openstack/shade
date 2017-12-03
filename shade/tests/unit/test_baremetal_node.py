@@ -779,6 +779,55 @@ class TestBaremetalNode(base.IronicTestCase):
         self.assertEqual(available_node, return_value)
         self.assert_calls()
 
+    def test_wait_for_baremetal_node_lock_locked(self):
+        self.fake_baremetal_node['reservation'] = 'conductor0'
+        unlocked_node = self.fake_baremetal_node.copy()
+        unlocked_node['reservation'] = None
+        self.register_uris([
+            dict(method='GET',
+                 uri=self.get_mock_url(
+                     resource='nodes',
+                     append=[self.fake_baremetal_node['uuid']]),
+                 json=self.fake_baremetal_node),
+            dict(method='GET',
+                 uri=self.get_mock_url(
+                     resource='nodes',
+                     append=[self.fake_baremetal_node['uuid']]),
+                 json=unlocked_node),
+        ])
+        self.assertIsNone(
+            self.op_cloud.wait_for_baremetal_node_lock(
+                self.fake_baremetal_node,
+                timeout=1))
+
+        self.assert_calls()
+
+    def test_wait_for_baremetal_node_lock_not_locked(self):
+        self.fake_baremetal_node['reservation'] = None
+        self.assertIsNone(
+            self.op_cloud.wait_for_baremetal_node_lock(
+                self.fake_baremetal_node,
+                timeout=1))
+
+        self.assertEqual(0, len(self.adapter.request_history))
+
+    def test_wait_for_baremetal_node_lock_timeout(self):
+        self.fake_baremetal_node['reservation'] = 'conductor0'
+        self.register_uris([
+            dict(method='GET',
+                 uri=self.get_mock_url(
+                     resource='nodes',
+                     append=[self.fake_baremetal_node['uuid']]),
+                 json=self.fake_baremetal_node),
+        ])
+        self.assertRaises(
+            exc.OpenStackCloudException,
+            self.op_cloud.wait_for_baremetal_node_lock,
+            self.fake_baremetal_node,
+            timeout=0.001)
+
+        self.assert_calls()
+
     def test_activate_node(self):
         self.fake_baremetal_node['provision_state'] = 'active'
         self.register_uris([
