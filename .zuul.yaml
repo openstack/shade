@@ -219,7 +219,6 @@
         - shade-ansible-devel-functional-devstack
         - shade-ansible-functional-devstack
         - shade-functional-devstack
-        - shade-functional-devstack-legacy
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
     gate:
