@@ -39,12 +39,9 @@
 
 - job:
     name: shade-functional-devstack-base
-    parent: devstack
+    parent: devstack-tox-functional-consumer
     description: |
-      Base job for devstack-based functional tests
-    pre-run: playbooks/devstack/pre.yaml
-    run: playbooks/devstack/run.yaml
-    post-run: playbooks/devstack/post.yaml
+      Base job for shade devstack-based functional tests
     required-projects:
       # These jobs will DTRT when shade triggers them, but we want to make
       # sure stable branches of shade never get cloned by other people,
@@ -55,8 +52,6 @@
       - name: openstack/swift
     timeout: 9000
     vars:
-      devstack_localrc:
-        SWIFT_HASH: '1234123412341234'
       devstack_local_conf:
         post-config:
           $CINDER_CONF:
@@ -70,7 +65,6 @@
         ceilometer-anotification: false
         ceilometer-api: false
         ceilometer-collector: false
-        horizon: false
         s-account: true
         s-container: true
         s-object: true
