@@ -26,6 +26,7 @@ class TestStack(base.RequestsMockTestCase):
         super(TestStack, self).setUp()
         self.stack_id = self.getUniqueString('id')
         self.stack_name = self.getUniqueString('name')
+        self.stack_tag = self.getUniqueString('tag')
         self.stack = fakes.make_fake_stack(self.stack_id, self.stack_name)
 
     def test_list_stacks(self):
@@ -304,6 +305,7 @@ class TestStack(base.RequestsMockTestCase):
                         'files': {},
                         'parameters': {},
                         'stack_name': self.stack_name,
+                        'tags': self.stack_tag,
                         'template': fakes.FAKE_TEMPLATE_CONTENT,
                         'timeout_mins': 60}
                 )),
@@ -327,6 +329,7 @@ class TestStack(base.RequestsMockTestCase):
 
         self.cloud.create_stack(
             self.stack_name,
+            tags=self.stack_tag,
             template_file=test_template.name
         )
 
@@ -350,6 +353,7 @@ class TestStack(base.RequestsMockTestCase):
                         'files': {},
                         'parameters': {},
                         'stack_name': self.stack_name,
+                        'tags': self.stack_tag,
                         'template': fakes.FAKE_TEMPLATE_CONTENT,
                         'timeout_mins': 60}
                 )),
@@ -383,6 +387,7 @@ class TestStack(base.RequestsMockTestCase):
         ])
         self.cloud.create_stack(
             self.stack_name,
+            tags=self.stack_tag,
             template_file=test_template.name,
             wait=True)
 
