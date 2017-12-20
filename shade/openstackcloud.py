@@ -11383,6 +11383,13 @@ class OpenStackCloud(
                            "project {0}".format(proj.id)))
         return self._get_and_munchify('quota', data)
 
+    def get_network_extensions(self):
+        """Get Cloud provided network extensions
+
+        :returns: set of Neutron extension aliases
+        """
+        return self._neutron_extensions()
+
     def delete_network_quotas(self, name_or_id):
         """ Delete network quotas for a project
 
