@@ -188,8 +188,9 @@
     description: |
       Run shade ansible functional tests against a master devstack
       using git devel branch version of ansible.
-    # required-projects:
-    #   - github.com/ansible/ansible
+    required-projects:
+      - name: github.com/ansible/ansible
+        override-branch: devel
     voting: false
     vars:
       tox_install_siblings: true
