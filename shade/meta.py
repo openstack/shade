@@ -226,7 +226,10 @@ def find_best_address(addresses, family, public=False, cloud_public=True):
             try:
                 connect_socket = socket.socket(family, socket.SOCK_STREAM, 0)
                 connect_socket.settimeout(1)
-                connect_socket.connect((address, 22, 0, 0))
+                if family == socket.AF_INET4:
+                    connect_socket.connect((address, 22))
+                else:
+                    connect_socket.connect((address, 22, 0, 0))
                 return address
             except Exception:
                 pass
