@@ -126,15 +126,12 @@ class BaseTestCase(base.TestCase):
         self.cloud_config = self.config.get_one_cloud(
             cloud=test_cloud, validate=False)
         self.cloud = shade.OpenStackCloud(
-            cloud_config=self.cloud_config,
-            log_inner_exceptions=True)
+            cloud_config=self.cloud_config)
         self.strict_cloud = shade.OpenStackCloud(
             cloud_config=self.cloud_config,
-            log_inner_exceptions=True,
             strict=True)
         self.op_cloud = shade.OperatorCloud(
-            cloud_config=self.cloud_config,
-            log_inner_exceptions=True)
+            cloud_config=self.cloud_config)
 
 
 class TestCase(BaseTestCase):
@@ -451,11 +448,9 @@ class RequestsMockTestCase(BaseTestCase):
         self.cloud_config = self.config.get_one_cloud(
             cloud=test_cloud, validate=True, **kwargs)
         self.cloud = shade.OpenStackCloud(
-            cloud_config=self.cloud_config,
-            log_inner_exceptions=True)
+            cloud_config=self.cloud_config)
         self.op_cloud = shade.OperatorCloud(
-            cloud_config=self.cloud_config,
-            log_inner_exceptions=True)
+            cloud_config=self.cloud_config)
 
     def get_glance_discovery_mock_dict(
             self,
