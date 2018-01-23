@@ -37,15 +37,13 @@ class BaseFunctionalTestCase(base.TestCase):
         user_config = self.config.get_one_cloud(
             cloud=self._demo_name, **kwargs)
         self.user_cloud = shade.OpenStackCloud(
-            cloud_config=user_config,
-            log_inner_exceptions=True)
+            cloud_config=user_config)
 
     def _set_operator_cloud(self, **kwargs):
         operator_config = self.config.get_one_cloud(
             cloud=self._op_name, **kwargs)
         self.operator_cloud = shade.OperatorCloud(
-            cloud_config=operator_config,
-            log_inner_exceptions=True)
+            cloud_config=operator_config)
 
     def pick_image(self):
         images = self.user_cloud.list_images()

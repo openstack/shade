@@ -32,26 +32,15 @@ class OpenStackCloudException(Exception):
             args.append("Extra: {0}".format(str(extra_data)))
         super(OpenStackCloudException, self).__init__(*args, **kwargs)
         self.extra_data = extra_data
+        # NOTE(mordred) The next two are not used for anything, but
+        # they are public attributes so we keep them around.
         self.inner_exception = sys.exc_info()
         self.orig_message = message
 
     def log_error(self, logger=None):
-        if not logger:
-            logger = _log.setup_logging('shade.exc')
-        if self.inner_exception and self.inner_exception[1]:
-            logger.error(self.orig_message, exc_info=self.inner_exception)
-
-    def __str__(self):
-        message = Exception.__str__(self)
-        if (self.inner_exception and self.inner_exception[1]
-                and not self.orig_message.endswith(
-                    str(self.inner_exception[1]))):
-            message = "%s (Inner Exception: %s)" % (
-                message,
-                str(self.inner_exception[1]))
-        if self.log_inner_exceptions:
-            self.log_error()
-        return message
+        # NOTE(mordred) This method is here for backwards compat. As shade
+        # no longer wraps any exceptions, this doesn't do anything.
+        pass
 
 
 class OpenStackCloudCreateException(OpenStackCloudException):

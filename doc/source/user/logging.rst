@@ -52,11 +52,6 @@ shade.request_ids
   This can be be useful for tracking action taken on the server-side if one
   does not want `HTTP Tracing`_.
 
-shade.exc
-  If `log_inner_exceptions` is set to True, `shade` will emit any wrapped
-  exception to the `shade.exc` logger. Wrapped exceptions are usually
-  considered implementation details, but can be useful for debugging problems.
-
 shade.iterate_timeout
   When `shade` needs to poll a resource, it does so in a loop that waits
   between iterations and ultimately timesout. The `shade.iterate_timeout`
