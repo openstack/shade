@@ -2,9 +2,11 @@
 Usage
 =====
 
-To use shade in a project::
+To use shade in a project:
 
-	import shade
+.. code-block:: python
+
+  import shade
 
 For a simple example, see :ref:`example`.
 
@@ -16,7 +18,4 @@ For a simple example, see :ref:`example`.
   (e.g., ``server.id``, ``image.name`` and ``server['id']``, ``image['name']``)
 
 .. autoclass:: shade.OpenStackCloud
-   :members:
-
-.. autoclass:: shade.OperatorCloud
    :members:
