@@ -201,7 +201,6 @@
         - shade-functional-devstack-tips-python3
 
 - project:
-    name: openstack-infra/shade
     templates:
       - publish-to-pypi
       - publish-openstack-sphinx-docs
