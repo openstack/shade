@@ -47,7 +47,7 @@
       # sure stable branches of shade never get cloned by other people,
       # since stable branches of shade are, well, not actually things.
       - name: openstack-infra/shade
-        override-branch: master
+        override-checkout: master
       - name: openstack/heat
       - name: openstack/swift
     timeout: 9000
@@ -100,7 +100,7 @@
       tox_environment:
         SHADE_USE_KEYSTONE_V2: 1
         SHADE_HAS_NEUTRON: 0
-    override-branch: stable/newton
+    override-checkout: stable/newton
 
 - job:
     name: shade-functional-devstack
@@ -182,9 +182,14 @@
     description: |
       Run shade ansible functional tests against a master devstack
       using git devel branch version of ansible.
+    branches: ^(devel|master)$
     required-projects:
       - name: github.com/ansible/ansible
-        override-branch: devel
+        override-checkout: devel
+      - name: openstack-infra/shade
+        override-checkout: master
+      - name: openstack-dev/devstack
+        override-checkout: master
     voting: false
     vars:
       tox_install_siblings: true
