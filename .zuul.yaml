@@ -90,7 +90,7 @@
     parent: shade-functional-devstack-base
     description: |
       Run shade functional tests against a legacy devstack
-    # TODO(mordred): This does not seem to 
+    # TODO(mordred): This does not seem to work
     voting: false
     vars:
       devstack_localrc:
@@ -190,8 +190,11 @@
         override-checkout: master
       - name: openstack-dev/devstack
         override-checkout: master
-    voting: false
     vars:
+      # test-matrix grabs branch from the zuul branch setting. If the job
+      # is triggered by ansible, that branch will be devel which doesn't
+      # make sense to devstack. Override so that we run the right thing.
+      test_matrix_branch: master
       tox_install_siblings: true
 
 - project-template:
@@ -216,7 +219,8 @@
       jobs:
         - bifrost-integration-tinyipa
         - bifrost-integration-tinyipa-opensuse-423
-        - shade-ansible-devel-functional-devstack
+        - shade-ansible-devel-functional-devstack:
+            voting: false
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-magnum
