@@ -73,7 +73,7 @@ def simple_logging(debug=False, http_debug=False):
 
 def openstack_clouds(
         config=None, debug=False, cloud=None, strict=False,
-        app_name=None, app_version=None):
+        app_name=None, app_version=None, use_direct_get=False):
     if not config:
         config = _get_openstack_config(app_name, app_version)
     try:
@@ -83,6 +83,7 @@ def openstack_clouds(
                     cloud=f.name, debug=debug,
                     cloud_config=f,
                     strict=strict,
+                    use_direct_get=use_direct_get,
                     **f.config)
                 for f in config.get_all_clouds()
             ]
@@ -92,6 +93,7 @@ def openstack_clouds(
                     cloud=f.name, debug=debug,
                     cloud_config=f,
                     strict=strict,
+                    use_direct_get=use_direct_get,
                     **f.config)
                 for f in config.get_all_clouds()
                 if f.name == cloud
@@ -102,7 +104,8 @@ def openstack_clouds(
 
 
 def openstack_cloud(
-        config=None, strict=False, app_name=None, app_version=None, **kwargs):
+        config=None, strict=False, app_name=None, app_version=None,
+        use_direct_get=False, **kwargs):
     if not config:
         config = _get_openstack_config(app_name, app_version)
     try:
@@ -110,11 +113,14 @@ def openstack_cloud(
     except keystoneauth1.exceptions.auth_plugins.NoMatchingPlugin as e:
         raise OpenStackCloudException(
             "Invalid cloud configuration: {exc}".format(exc=str(e)))
-    return OpenStackCloud(cloud_config=cloud_config, strict=strict)
+    return OpenStackCloud(
+        cloud_config=cloud_config, strict=strict,
+        use_direct_get=use_direct_get)
 
 
 def operator_cloud(
-        config=None, strict=False, app_name=None, app_version=None, **kwargs):
+        config=None, strict=False, app_name=None, app_version=None,
+        use_direct_get=False, **kwargs):
     if not config:
         config = _get_openstack_config(app_name, app_version)
     try:
@@ -122,4 +128,6 @@ def operator_cloud(
     except keystoneauth1.exceptions.auth_plugins.NoMatchingPlugin as e:
         raise OpenStackCloudException(
             "Invalid cloud configuration: {exc}".format(exc=str(e)))
-    return OperatorCloud(cloud_config=cloud_config, strict=strict)
+    return OperatorCloud(
+        cloud_config=cloud_config, strict=strict,
+        use_direct_get=use_direct_get)
