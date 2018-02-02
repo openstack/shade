@@ -3133,9 +3133,12 @@ class OpenStackCloud(
                   found.
 
         """
-        searchfunc = functools.partial(self.search_servers,
-                                       detailed=detailed, bare=True,
-                                       all_projects=all_projects)
+        if self.use_direct_get:
+            searchfunc = functools.partial(self.get_server_by_id, bare=True)
+        else:
+            searchfunc = functools.partial(self.search_servers,
+                                           detailed=detailed, bare=True,
+                                           all_projects=all_projects)
         server = _utils._get_entity(self, searchfunc, name_or_id, filters)
         return self._expand_server(server, detailed, bare)
 
@@ -3147,10 +3150,31 @@ class OpenStackCloud(
         else:
             return meta.add_server_interfaces(self, server)
 
-    def get_server_by_id(self, id):
-        data = self._compute_client.get('/servers/{id}'.format(id=id))
+    def get_server_by_id(
+            self, id=None, detailed=False, bare=False, all_projects=False):
+        """Get a server by ID.
+
+        :param id: ID of the server.
+        :param detailed: Whether or not to add detailed additional information.
+                         Defaults to False.
+        :param bare: Whether to skip adding any additional information to the
+                     server record. Defaults to False, meaning the addresses
+                     dict will be populated as needed from neutron. Setting
+                     to True implies detailed = False.
+        :param all_projects: Whether to get server from all projects or just
+                             the current auth scoped project.
+
+        :returns: A server ``munch.Munch`` or None if no matching server is
+                  found.
+        """
+        params = {}
+        if all_projects:
+            params['all_tenants'] = True
+        data = self._compute_client.get(
+            '/servers/{id}'.format(id=id), params=params)
         server = self._get_and_munchify('server', data)
-        return meta.add_server_interfaces(self, self._normalize_server(server))
+        return self._expand_server(
+            self._normalize_server(server), detailed=detailed, bare=bare)
 
     def get_server_group(self, name_or_id=None, filters=None):
         """Get a server group by name or ID.
