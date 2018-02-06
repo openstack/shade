@@ -112,20 +112,22 @@ class TestStack(base.RequestsMockTestCase):
             self.cloud.search_stacks()
 
     def test_delete_stack(self):
+        resolve = 'resolve_outputs=False'
         self.register_uris([
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}'.format(
+                 uri='{endpoint}/stacks/{name}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     name=self.stack_name),
+                     name=self.stack_name, resolve=resolve),
                  status_code=302,
                  headers=dict(
-                     location='{endpoint}/stacks/{name}/{id}'.format(
+                     location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                          endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                         id=self.stack_id, name=self.stack_name))),
+                         id=self.stack_id, name=self.stack_name,
+                         resolve=resolve))),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}/{id}'.format(
+                 uri='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  json={"stack": self.stack}),
             dict(method='DELETE',
                  uri='{endpoint}/stacks/{id}'.format(
@@ -136,30 +138,33 @@ class TestStack(base.RequestsMockTestCase):
         self.assert_calls()
 
     def test_delete_stack_not_found(self):
+        resolve = 'resolve_outputs=False'
         self.register_uris([
             dict(method='GET',
-                 uri='{endpoint}/stacks/stack_name'.format(
-                     endpoint=fakes.ORCHESTRATION_ENDPOINT),
+                 uri='{endpoint}/stacks/stack_name?{resolve}'.format(
+                     endpoint=fakes.ORCHESTRATION_ENDPOINT, resolve=resolve),
                  status_code=404),
         ])
         self.assertFalse(self.cloud.delete_stack('stack_name'))
         self.assert_calls()
 
     def test_delete_stack_exception(self):
+        resolve = 'resolve_outputs=False'
         self.register_uris([
             dict(method='GET',
-                 uri='{endpoint}/stacks/{id}'.format(
+                 uri='{endpoint}/stacks/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id),
+                     id=self.stack_id, resolve=resolve),
                  status_code=302,
                  headers=dict(
-                     location='{endpoint}/stacks/{name}/{id}'.format(
+                     location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                          endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                         id=self.stack_id, name=self.stack_name))),
+                         id=self.stack_id, name=self.stack_name,
+                         resolve=resolve))),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}/{id}'.format(
+                 uri='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  json={"stack": self.stack}),
             dict(method='DELETE',
                  uri='{endpoint}/stacks/{id}'.format(
@@ -177,20 +182,23 @@ class TestStack(base.RequestsMockTestCase):
             self.stack_id, self.stack_name, status='CREATE_COMPLETE')
         marker_qs = 'marker={e_id}&sort_dir=asc'.format(
             e_id=marker_event['id'])
+        resolve = 'resolve_outputs=False'
         self.register_uris([
             dict(method='GET',
-                 uri='{endpoint}/stacks/{id}'.format(
+                 uri='{endpoint}/stacks/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id),
+                     id=self.stack_id,
+                     resolve=resolve),
                  status_code=302,
                  headers=dict(
-                     location='{endpoint}/stacks/{name}/{id}'.format(
+                     location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                          endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                         id=self.stack_id, name=self.stack_name))),
+                         id=self.stack_id, name=self.stack_name,
+                         resolve=resolve))),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}/{id}'.format(
+                 uri='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  json={"stack": self.stack}),
             dict(method='GET',
                  uri='{endpoint}/stacks/{id}/events?{qs}'.format(
@@ -215,9 +223,9 @@ class TestStack(base.RequestsMockTestCase):
                          status='DELETE_COMPLETE'),
                  ]}),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{id}'.format(
+                 uri='{endpoint}/stacks/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  status_code=404),
         ])
 
@@ -231,20 +239,22 @@ class TestStack(base.RequestsMockTestCase):
             self.stack_id, self.stack_name, status='CREATE_COMPLETE')
         marker_qs = 'marker={e_id}&sort_dir=asc'.format(
             e_id=marker_event['id'])
+        resolve = 'resolve_outputs=False'
         self.register_uris([
             dict(method='GET',
-                 uri='{endpoint}/stacks/{id}'.format(
+                 uri='{endpoint}/stacks/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id),
+                     id=self.stack_id, resolve=resolve),
                  status_code=302,
                  headers=dict(
-                     location='{endpoint}/stacks/{name}/{id}'.format(
+                     location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                          endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                         id=self.stack_id, name=self.stack_name))),
+                         id=self.stack_id, name=self.stack_name,
+                         resolve=resolve))),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}/{id}'.format(
+                 uri='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  json={"stack": self.stack}),
             dict(method='GET',
                  uri='{endpoint}/stacks/{id}/events?{qs}'.format(
@@ -269,18 +279,19 @@ class TestStack(base.RequestsMockTestCase):
                          status='DELETE_COMPLETE'),
                  ]}),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{id}'.format(
+                 uri='{endpoint}/stacks/{id}?resolve_outputs=False'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
                      id=self.stack_id, name=self.stack_name),
                  status_code=302,
                  headers=dict(
-                     location='{endpoint}/stacks/{name}/{id}'.format(
+                     location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                          endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                         id=self.stack_id, name=self.stack_name))),
+                         id=self.stack_id, name=self.stack_name,
+                         resolve=resolve))),
             dict(method='GET',
-                 uri='{endpoint}/stacks/{name}/{id}'.format(
+                 uri='{endpoint}/stacks/{name}/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id, name=self.stack_name, resolve=resolve),
                  json={"stack": failed_stack}),
         ])
 
