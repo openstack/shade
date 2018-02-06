@@ -1394,7 +1394,7 @@ class OpenStackCloud(
         :raises: ``OpenStackCloudException`` if something goes wrong during
             the OpenStack API call
         """
-        stack = self.get_stack(name_or_id)
+        stack = self.get_stack(name_or_id, resolve_outputs=False)
         if stack is None:
             self.log.debug("Stack %s not found for deleting", name_or_id)
             return False
@@ -1416,7 +1416,7 @@ class OpenStackCloud(
                                             marker=marker)
             except OpenStackCloudHTTPError:
                 pass
-            stack = self.get_stack(name_or_id)
+            stack = self.get_stack(name_or_id, resolve_outputs=False)
             if stack and stack['stack_status'] == 'DELETE_FAILED':
                 raise OpenStackCloudException(
                     "Failed to delete stack {id}: {reason}".format(
@@ -3336,12 +3336,14 @@ class OpenStackCloud(
             return self._normalize_floating_ip(
                 self._get_and_munchify('floating_ip', data))
 
-    def get_stack(self, name_or_id, filters=None):
+    def get_stack(self, name_or_id, filters=None, resolve_outputs=True):
         """Get exactly one stack.
 
         :param name_or_id: Name or ID of the desired stack.
         :param filters: a dict containing additional filters to use. e.g.
                 {'stack_status': 'CREATE_COMPLETE'}
+        :param resolve_outputs: If True, then outputs for this
+                stack will be resolved
 
         :returns: a ``munch.Munch`` containing the stack description
 
@@ -3353,8 +3355,11 @@ class OpenStackCloud(
             # stack names are mandatory and enforced unique in the project
             # so a StackGet can always be used for name or ID.
             try:
+                url = '/stacks/{name_or_id}'.format(name_or_id=name_or_id)
+                if not resolve_outputs:
+                    url = '{url}?resolve_outputs=False'.format(url=url)
                 data = self._orchestration_client.get(
-                    '/stacks/{name_or_id}'.format(name_or_id=name_or_id),
+                    url,
                     error_message="Error fetching stack")
                 stack = self._get_and_munchify('stack', data)
                 # Treat DELETE_COMPLETE stacks as a NotFound
