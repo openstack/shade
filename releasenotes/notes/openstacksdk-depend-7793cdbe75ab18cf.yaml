@@ -1,0 +1,15 @@
+---
+issues:
+  - |
+    The openstacksdk dependency lists ``>=0.9.19``, however the **ACTUAL**
+    lower-bound is ``0.11.2``, which is the version of openstacksdk released
+    with Queens. Since the dependency does not have an upper bound, installing
+    shade from pip will result in the correct thing.
+other:
+  - |
+    In preparation for being a compat layer during the Rocky timeframe, shade
+    now depends on openstacksdk and gets all of its dependencies as transitive
+    depends through openstacksdk. Subsequent shade releases will begin
+    replacing code inside of shade and will instead call the openstacksdk
+    copies of the relevant code. The shade backwards compat contract remains
+    in place and users should not notice any regressions.
