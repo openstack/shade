@@ -10,6 +10,7 @@
     required-projects:
       - openstack-infra/shade
       - openstack/keystoneauth
+      - openstack/python-openstacksdk
       - openstack/os-client-config
 
 - job:
@@ -24,6 +25,7 @@
     required-projects:
       - openstack-infra/shade
       - openstack/keystoneauth
+      - openstack/python-openstacksdk
       - openstack/os-client-config
 
 - project-template:
@@ -129,6 +131,7 @@
       master devstack.
     required-projects:
       - name: openstack/keystoneauth
+      - name: openstack/python-openstacksdk
       - name: openstack/os-client-config
     vars:
       tox_install_siblings: true
