@@ -2,7 +2,7 @@
     name: shade-tox-py27-tips
     parent: openstack-tox-py27
     description: |
-      Run tox python 27 unittests against master of important libs
+      Run tox python 27 unittests against stable/queens of important libs
     vars:
       tox_install_siblings: true
     # shade in required-projects so that os-client-config and keystoneauth
@@ -16,7 +16,7 @@
     name: shade-tox-py35-tips
     parent: openstack-tox-py35
     description: |
-      Run tox python 35 unittests against master of important libs
+      Run tox python 35 unittests against stable/queens of important libs
     vars:
       tox_install_siblings: true
     # shade in required-projects so that os-client-config and keystoneauth
@@ -46,11 +46,7 @@
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
     required-projects:
-      # These jobs will DTRT when shade triggers them, but we want to make
-      # sure stable branches of shade never get cloned by other people,
-      # since stable branches of shade are, well, not actually things.
       - name: openstack-infra/shade
-        override-branch: master
       - name: openstack/heat
       - name: openstack/swift
     timeout: 9000
@@ -112,7 +108,7 @@
     name: shade-functional-devstack
     parent: shade-functional-devstack-base
     description: |
-      Run shade functional tests against a master devstack
+      Run shade functional tests against a stable/queens devstack
     vars:
       devstack_localrc:
         Q_SERVICE_PLUGIN_CLASSES: qos
@@ -122,7 +118,7 @@
     name: shade-functional-devstack-python3
     parent: shade-functional-devstack
     description: |
-      Run shade functional tests using python3 against a master devstack
+      Run shade functional tests using python3 against a stable/queens devstack
     vars:
       shade_environment:
         SHADE_TOX_PYTHON: python3
@@ -132,7 +128,7 @@
     parent: shade-functional-devstack
     description: |
       Run shade functional tests with tips of library dependencies against a
-      master devstack.
+      stable/queens devstack.
     required-projects:
       - name: openstack/keystoneauth
       - name: openstack/os-client-config
@@ -144,7 +140,7 @@
     parent: shade-functional-devstack-tips
     description: |
       Run shade functional tests with tips of library dependencies using
-      python3 against a master devstack.
+      python3 against a stable/queens devstack.
     vars:
       tox_environment:
         SHADE_TOX_PYTHON: python3
@@ -153,7 +149,7 @@
     name: shade-functional-devstack-magnum
     parent: shade-functional-devstack
     description: |
-      Run shade functional tests against a master devstack with magnum
+      Run shade functional tests against a stable/queens devstack with magnum
     required-projects:
       - openstack/magnum
       - openstack/python-magnumclient
@@ -177,22 +173,10 @@
     name: shade-ansible-functional-devstack
     parent: shade-functional-devstack
     description: |
-      Run shade ansible functional tests against a master devstack
+      Run shade ansible functional tests against a stable/queens devstack
       using released version of ansible.
     vars:
       tox_envlist: ansible
-
-- job:
-    name: shade-ansible-devel-functional-devstack
-    parent: shade-ansible-functional-devstack
-    description: |
-      Run shade ansible functional tests against a master devstack
-      using git devel branch version of ansible.
-    # required-projects:
-    #   - github.com/ansible/ansible
-    voting: false
-    vars:
-      tox_install_siblings: true
 
 - project-template:
     name: shade-functional-tips
@@ -216,7 +200,6 @@
       jobs:
         - bifrost-integration-tinyipa
         - bifrost-integration-tinyipa-opensuse-423
-        - shade-ansible-devel-functional-devstack
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-magnum
