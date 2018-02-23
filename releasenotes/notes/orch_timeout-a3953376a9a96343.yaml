@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Allow None for timeout in create_stack() and update_stack() calls.

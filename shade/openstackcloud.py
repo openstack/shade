@@ -1285,7 +1285,8 @@ class OpenStackCloud(
         :param dict files: dict of additional file content to include.
         :param boolean rollback: Enable rollback on create failure.
         :param boolean wait: Whether to wait for the delete to finish.
-        :param int timeout: Stack create timeout in seconds.
+        :param int timeout: Stack create timeout in seconds. None will use
+            the server default.
         :param list environment_files: Paths to environment files to apply.
 
         Other arguments will be passed as stack parameters which will take
@@ -1299,6 +1300,9 @@ class OpenStackCloud(
         :raises: ``OpenStackCloudException`` if something goes wrong during
             the OpenStack API call
         """
+        if timeout:
+            timeout = timeout // 60
+
         envfiles, env = template_utils.process_multiple_environments_and_files(
             env_paths=environment_files)
         tpl_files, template = template_utils.get_template_contents(
@@ -1314,7 +1318,7 @@ class OpenStackCloud(
             template=template,
             files=dict(list(tpl_files.items()) + list(envfiles.items())),
             environment=env,
-            timeout_mins=timeout // 60,
+            timeout_mins=timeout,
         )
         self._orchestration_client.post('/stacks', json=params)
         if wait:
@@ -1339,7 +1343,8 @@ class OpenStackCloud(
         :param dict files: dict of additional file content to include.
         :param boolean rollback: Enable rollback on update failure.
         :param boolean wait: Whether to wait for the delete to finish.
-        :param int timeout: Stack update timeout in seconds.
+        :param int timeout: Stack update timeout in seconds. None will use
+            the server default.
         :param list environment_files: Paths to environment files to apply.
 
         Other arguments will be passed as stack parameters which will take
@@ -1353,6 +1358,9 @@ class OpenStackCloud(
         :raises: ``OpenStackCloudException`` if something goes wrong during
             the OpenStack API calls
         """
+        if timeout:
+            timeout = timeout // 60
+
         envfiles, env = template_utils.process_multiple_environments_and_files(
             env_paths=environment_files)
         tpl_files, template = template_utils.get_template_contents(
@@ -1366,7 +1374,7 @@ class OpenStackCloud(
             template=template,
             files=dict(list(tpl_files.items()) + list(envfiles.items())),
             environment=env,
-            timeout_mins=timeout // 60,
+            timeout_mins=timeout,
         )
         if wait:
             # find the last event to use as the marker
