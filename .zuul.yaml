@@ -5,6 +5,7 @@
       Run tox python 27 unittests against master of important libs
     vars:
       tox_install_siblings: true
+      zuul_work_dir: src/git.openstack.org/openstack-infra/shade
     # shade in required-projects so that os-client-config and keystoneauth
     # can add the job as well
     required-projects:
@@ -20,6 +21,7 @@
       Run tox python 35 unittests against master of important libs
     vars:
       tox_install_siblings: true
+      zuul_work_dir: src/git.openstack.org/openstack-infra/shade
     # shade in required-projects so that os-client-config and keystoneauth
     # can add the job as well
     required-projects:
