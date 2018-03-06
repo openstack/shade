@@ -9384,20 +9384,33 @@ class OpenStackCloud(
                 )
 
     def validate_node(self, uuid):
-        # TODO(TheJulia): There are soooooo many other interfaces
-        # that we can support validating, while these are essential,
-        # we should support more.
-        # TODO(TheJulia): Add a doc string :(
+        """Returns node validation information
+
+        :param string uuid: A UUID value representing the baremetal node.
+
+        :raises: OpenStackCloudException on operation error or
+                  if deploy and power informations are not present.
+
+        :returns: dict containing validation information for each
+                  interface: boot, console, deploy, inspect, management,
+                  network, power, raid, rescue, storage, ...
+        """
         msg = ("Failed to query the API for validation status of "
                "node {node_id}").format(node_id=uuid)
         url = '/nodes/{node_id}/validate'.format(node_id=uuid)
-        ifaces = self._baremetal_client.get(url, error_message=msg)
-
-        if not ifaces['deploy'] or not ifaces['power']:
+        validate_resp = self._baremetal_client.get(url, error_message=msg)
+        is_deploy_valid = validate_resp.get(
+            'deploy', {'result': False}).get('result', False)
+        is_power_valid = validate_resp.get(
+            'power', {'result': False}).get('result', False)
+        if not is_deploy_valid or not is_power_valid:
             raise OpenStackCloudException(
-                "ironic node %s failed to validate. "
-                "(deploy: %s, power: %s)" % (ifaces['deploy'],
-                                             ifaces['power']))
+                "ironic node {} failed to validate. "
+                "(deploy: {}, power: {})".format(
+                    uuid,
+                    validate_resp.get('deploy'),
+                    validate_resp.get('power')))
+        return validate_resp
 
     def node_set_provision_state(self,
                                  name_or_id,
