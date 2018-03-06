@@ -858,6 +858,46 @@ class TestBaremetalNode(base.IronicTestCase):
         self.assertEqual(available_node, return_value)
         self.assert_calls()
 
+    def test_node_set_provision_state_bad_request(self):
+        self.fake_baremetal_node['provision_state'] = 'enroll'
+        self.register_uris([
+            dict(
+                method='PUT',
+                status_code=400,
+                json={'error': "{\"faultstring\": \"invalid state\"}"},
+                uri=self.get_mock_url(
+                    resource='nodes',
+                    append=[self.fake_baremetal_node['uuid'],
+                            'states', 'provision'])),
+        ])
+        self.assertRaisesRegexp(
+            exc.OpenStackCloudException,
+            '^Baremetal .* to dummy.*/states/provision invalid state$',
+            self.op_cloud.node_set_provision_state,
+            self.fake_baremetal_node['uuid'],
+            'dummy')
+        self.assert_calls()
+
+    def test_node_set_provision_state_bad_request_bad_json(self):
+        self.fake_baremetal_node['provision_state'] = 'enroll'
+        self.register_uris([
+            dict(
+                method='PUT',
+                status_code=400,
+                json={'error': 'invalid json'},
+                uri=self.get_mock_url(
+                    resource='nodes',
+                    append=[self.fake_baremetal_node['uuid'],
+                            'states', 'provision'])),
+        ])
+        self.assertRaisesRegexp(
+            exc.OpenStackCloudException,
+            '^Baremetal .* to dummy.*/states/provision$',
+            self.op_cloud.node_set_provision_state,
+            self.fake_baremetal_node['uuid'],
+            'dummy')
+        self.assert_calls()
+
     def test_wait_for_baremetal_node_lock_locked(self):
         self.fake_baremetal_node['reservation'] = 'conductor0'
         unlocked_node = self.fake_baremetal_node.copy()

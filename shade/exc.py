@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys
+import json
 
 import munch
 from requests import exceptions as _rex
@@ -140,6 +141,13 @@ def raise_from_response(response, error_message=None):
     except AttributeError:
         if response.reason:
             remote_error += " {reason}".format(reason=response.reason)
+        try:
+            json_resp = json.loads(details[detail_key])
+            fault_string = json_resp.get('faultstring')
+            if fault_string:
+                remote_error += " {fault}".format(fault=fault_string)
+        except Exception:
+            pass
 
     _log_response_extras(response)
 
