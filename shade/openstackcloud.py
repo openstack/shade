@@ -3420,7 +3420,8 @@ class OpenStackCloud(
 
     def create_network(self, name, shared=False, admin_state_up=True,
                        external=False, provider=None, project_id=None,
-                       availability_zone_hints=None):
+                       availability_zone_hints=None,
+                       port_security_enabled=None):
         """Create a network.
 
         :param string name: Name of the network being created.
@@ -3433,6 +3434,7 @@ class OpenStackCloud(
         :param string project_id: Specify the project ID this network
             will be created on (admin-only).
         :param list availability_zone_hints: A list of availability zone hints.
+        :param bool port_security_enabled: Enable / Disable port security
 
         :returns: The network object.
         :raises: OpenStackCloudException on operation error.
@@ -3474,6 +3476,12 @@ class OpenStackCloud(
         # some situations. It defaults to False in the client, anyway.
         if external:
             network['router:external'] = True
+
+        if port_security_enabled is not None:
+            if not isinstance(port_security_enabled, bool):
+                raise OpenStackCloudException(
+                    "Parameter 'port_security_enabled' must be a bool")
+            network['port_security_enabled'] = port_security_enabled
 
         data = self._network_client.post("/networks.json",
                                          json={'network': network})
