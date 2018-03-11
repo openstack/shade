@@ -7828,7 +7828,12 @@ class OpenStackCloud(
         :raises: OpenStackCloudException on operation error.
         """
 
-        network = self.get_network(network_name_or_id)
+        if tenant_id is not None:
+            filters = {'tenant_id': tenant_id}
+        else:
+            filters = None
+
+        network = self.get_network(network_name_or_id, filters)
         if not network:
             raise OpenStackCloudException(
                 "Network %s not found." % network_name_or_id)
