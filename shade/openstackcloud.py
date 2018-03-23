@@ -2183,8 +2183,20 @@ class OpenStackCloud(
             params['all_tenants'] = True
         data = self._compute_client.get(
             '/servers/detail', params=params, error_message=error_msg)
+        unprocessed_servers = {'servers': []}
+        while 'servers_links' in data:
+            unprocessed_servers['servers'].extend(data['servers'])
+            parse_result = urllib.parse.urlparse(
+                data['servers_links'][0]['href'])
+            pagination_params = dict(
+                urllib.parse.parse_qsl(parse_result.query))
+            params.update(pagination_params)
+            data = self._compute_client.get(
+                '/servers/detail', params=params, error_message=error_msg)
+        unprocessed_servers['servers'].extend(data['servers'])
+
         servers = self._normalize_servers(
-            self._get_and_munchify('servers', data))
+            self._get_and_munchify('servers', unprocessed_servers))
         return [
             self._expand_server(server, detailed, bare)
             for server in servers
