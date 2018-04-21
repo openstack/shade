@@ -42,7 +42,7 @@ Sometimes an example is nice.
    * ``~/.config/openstack``
    * ``/etc/openstack``
 
-   More information at https://pypi.python.org/pypi/os-client-config
+   More information at https://pypi.org/project/os-client-config
 
 
 #. Create a server with *shade*, configured with the ``clouds.yml`` file::
@@ -75,5 +75,5 @@ Links
 * `Issue Tracker <https://storyboard.openstack.org/#!/project/760>`_
 * `Code Review <https://review.openstack.org/#/q/status:open+project:openstack-infra/shade,n,z>`_
 * `Documentation <https://docs.openstack.org/shade/latest/>`_
-* `PyPI <https://pypi.python.org/pypi/shade/>`_
+* `PyPI <https://pypi.org/project/shade/>`_
 * `Mailing list <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-infra>`_
