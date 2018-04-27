@@ -230,6 +230,7 @@
         - shade-functional-devstack
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
+        - openstack-tox-lower-constraints
     gate:
       jobs:
         - bifrost-integration-tinyipa
@@ -237,3 +238,4 @@
         - shade-ansible-functional-devstack
         - shade-functional-devstack
         - shade-functional-devstack-python3
+        - openstack-tox-lower-constraints
