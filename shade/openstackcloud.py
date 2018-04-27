@@ -321,10 +321,13 @@ class OpenStackCloud(
                        that do not want to be overridden can be ommitted.
         """
 
-        config = os_client_config.OpenStackConfig(
-            app_name=self.cloud_config._app_name,
-            app_version=self.cloud_config._app_version,
-            load_yaml_config=False)
+        if self.cloud_config._openstack_config:
+            config = self.cloud_config._openstack_config
+        else:
+            config = os_client_config.OpenStackConfig(
+                app_name=self.cloud_config._app_name,
+                app_version=self.cloud_config._app_version,
+                load_yaml_config=False)
         params = copy.deepcopy(self.cloud_config.config)
         # Remove profile from current cloud so that overridding works
         params.pop('profile', None)
@@ -362,9 +365,7 @@ class OpenStackCloud(
             # Constructor, otherwise the new auth plugin doesn't get used.
             return keystoneauth1.session.Session(session=self.keystone_session)
 
-        # Use cloud='defaults' so that we overlay settings properly
         cloud_config = config.get_one_cloud(
-            cloud='defaults',
             session_constructor=session_constructor,
             **params)
         # Override the cloud name so that logging/location work right
