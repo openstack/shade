@@ -369,7 +369,10 @@ class OpenStackCloud(
             session_constructor=session_constructor,
             **params)
         # Override the cloud name so that logging/location work right
-        cloud_config.name = self.name
+        if hasattr(cloud_config, '_name'):
+            cloud_config._name = self.name
+        else:
+            cloud_config.name = self.name
         cloud_config.config['profile'] = self.name
         # Use self.__class__ so that OperatorCloud will return an OperatorCloud
         # instance. This should also help passthrough from sdk work better when
