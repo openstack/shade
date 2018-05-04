@@ -10,15 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystoneauth1 import plugin as ksa_plugin
-
-from distutils import version as du_version
 import mock
 import munch
 import testtools
 
-import os_client_config as occ
-from os_client_config import cloud_config
+from openstack.config import cloud_region
 import shade
 from shade import exc
 from shade.tests import fakes
@@ -55,13 +51,13 @@ class TestShadeOperator(base.RequestsMockTestCase):
         self.assertEqual('22', self.op_cloud.get_image_id('22'))
         self.assertEqual('22', self.op_cloud.get_image_id('22 name'))
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_endpoint')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_endpoint')
     def test_get_session_endpoint_provided(self, fake_get_endpoint):
         fake_get_endpoint.return_value = 'http://fake.url'
         self.assertEqual(
             'http://fake.url', self.op_cloud.get_session_endpoint('image'))
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_get_session_endpoint_session(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = 'http://fake.url'
@@ -69,7 +65,7 @@ class TestShadeOperator(base.RequestsMockTestCase):
         self.assertEqual(
             'http://fake.url', self.op_cloud.get_session_endpoint('image'))
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_get_session_endpoint_exception(self, get_session_mock):
         class FakeException(Exception):
             pass
@@ -87,7 +83,7 @@ class TestShadeOperator(base.RequestsMockTestCase):
                 " No service"):
             self.op_cloud.get_session_endpoint("image")
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_get_session_endpoint_unavailable(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = None
@@ -95,32 +91,25 @@ class TestShadeOperator(base.RequestsMockTestCase):
         image_endpoint = self.op_cloud.get_session_endpoint("image")
         self.assertIsNone(image_endpoint)
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_get_session_endpoint_identity(self, get_session_mock):
         session_mock = mock.Mock()
         get_session_mock.return_value = session_mock
         self.op_cloud.get_session_endpoint('identity')
-        # occ > 1.26.0 fixes keystoneclient construction. Unfortunately, it
-        # breaks our mocking of what keystoneclient does here. Since we're
-        # close to just getting rid of ksc anyway, just put in a version match
-        occ_version = du_version.StrictVersion(occ.__version__)
-        if occ_version > du_version.StrictVersion('1.26.0'):
-            kwargs = dict(
-                interface='public', region_name='RegionOne',
-                service_name=None, service_type='identity')
-        else:
-            kwargs = dict(interface=ksa_plugin.AUTH_INTERFACE)
+        kwargs = dict(
+            interface='public', region_name='RegionOne',
+            service_name=None, service_type='identity')
 
         session_mock.get_endpoint.assert_called_with(**kwargs)
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_has_service_no(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = None
         get_session_mock.return_value = session_mock
         self.assertFalse(self.op_cloud.has_service("image"))
 
-    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
+    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_has_service_yes(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = 'http://fake.url'

@@ -14,7 +14,8 @@
 
 import functools
 
-import os_client_config
+from openstack import exceptions
+from openstack.config import loader
 
 import shade
 from shade import _utils
@@ -31,8 +32,8 @@ class OpenStackInventory(object):
             use_direct_get=False):
         if config_files is None:
             config_files = []
-        config = os_client_config.config.OpenStackConfig(
-            config_files=os_client_config.config.CONFIG_FILES + config_files)
+        config = loader.OpenStackConfig(
+            config_files=loader.CONFIG_FILES + config_files)
         self.extra_config = config.get_extra_config(
             config_key, config_defaults)
 
@@ -47,7 +48,7 @@ class OpenStackInventory(object):
                     shade.OpenStackCloud(
                         cloud_config=config.get_one_cloud(cloud))
                 ]
-            except os_client_config.exceptions.OpenStackConfigException as e:
+            except exceptions.ConfigException as e:
                 raise shade.OpenStackCloudException(e)
 
         if private:

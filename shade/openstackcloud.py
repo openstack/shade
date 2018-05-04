@@ -21,7 +21,6 @@ import iso8601
 import json
 import jsonpatch
 import operator
-import os_client_config.defaults
 import six
 import threading
 import time
@@ -35,7 +34,7 @@ from six.moves import urllib
 import keystoneauth1.exceptions
 import keystoneauth1.session
 import os
-import os_client_config
+from openstack.config import loader
 
 import shade
 from shade.exc import *  # noqa
@@ -121,7 +120,7 @@ class OpenStackCloud(
                      string. Optional, defaults to None.
     :param app_version: Version of the application to be appended to the
                         user-agent string. Optional, defaults to None.
-    :param CloudConfig cloud_config: Cloud config object from os-client-config
+    :param CloudRegion cloud_config: Cloud config object from openstack.config
                                      In the future, this will be the only way
                                      to pass in cloud configuration, but is
                                      being phased in currently.
@@ -140,24 +139,23 @@ class OpenStackCloud(
         self.log = _log.setup_logging('shade')
 
         if not cloud_config:
-            config = os_client_config.OpenStackConfig(
+            config = loader.OpenStackConfig(
                 app_name=app_name, app_version=app_version)
 
-            cloud_config = config.get_one_cloud(**kwargs)
+            cloud_config = config.get_one(**kwargs)
+        cloud_region = cloud_config
 
-        self.name = cloud_config.name
-        self.auth = cloud_config.get_auth_args()
-        self.region_name = cloud_config.region_name
-        self.default_interface = cloud_config.get_interface()
-        self.private = cloud_config.config.get('private', False)
-        self.api_timeout = cloud_config.config['api_timeout']
-        self.image_api_use_tasks = cloud_config.config['image_api_use_tasks']
-        self.secgroup_source = cloud_config.config['secgroup_source']
-        self.force_ipv4 = cloud_config.force_ipv4
+        self.name = cloud_region.name
+        self.auth = cloud_region.get_auth_args()
+        self.region_name = cloud_region.region_name
+        self.default_interface = cloud_region.get_interface()
+        self.private = cloud_region.config.get('private', False)
+        self.api_timeout = cloud_region.config['api_timeout']
+        self.image_api_use_tasks = cloud_region.config['image_api_use_tasks']
+        self.secgroup_source = cloud_region.config['secgroup_source']
+        self.force_ipv4 = cloud_region.force_ipv4
         self.strict_mode = strict
-        # TODO(mordred) When os-client-config adds a "get_client_settings()"
-        #               method to CloudConfig - remove this.
-        self._extra_config = cloud_config._openstack_config.get_extra_config(
+        self._extra_config = cloud_region.get_client_config(
             'shade', {
                 'get_flavor_extra_specs': True,
             })
@@ -168,14 +166,14 @@ class OpenStackCloud(
             self.manager = task_manager.TaskManager(
                 name=':'.join([self.name, self.region_name]), client=self)
 
-        self._external_ipv4_names = cloud_config.get_external_ipv4_networks()
-        self._internal_ipv4_names = cloud_config.get_internal_ipv4_networks()
-        self._external_ipv6_names = cloud_config.get_external_ipv6_networks()
-        self._internal_ipv6_names = cloud_config.get_internal_ipv6_networks()
-        self._nat_destination = cloud_config.get_nat_destination()
-        self._default_network = cloud_config.get_default_network()
+        self._external_ipv4_names = cloud_region.get_external_ipv4_networks()
+        self._internal_ipv4_names = cloud_region.get_internal_ipv4_networks()
+        self._external_ipv6_names = cloud_region.get_external_ipv6_networks()
+        self._internal_ipv6_names = cloud_region.get_internal_ipv6_networks()
+        self._nat_destination = cloud_region.get_nat_destination()
+        self._default_network = cloud_region.get_default_network()
 
-        self._floating_ip_source = cloud_config.config.get(
+        self._floating_ip_source = cloud_region.config.get(
             'floating_ip_source')
         if self._floating_ip_source:
             if self._floating_ip_source.lower() == 'none':
@@ -183,16 +181,16 @@ class OpenStackCloud(
             else:
                 self._floating_ip_source = self._floating_ip_source.lower()
 
-        self._use_external_network = cloud_config.config.get(
+        self._use_external_network = cloud_region.config.get(
             'use_external_network', True)
-        self._use_internal_network = cloud_config.config.get(
+        self._use_internal_network = cloud_region.config.get(
             'use_internal_network', True)
 
         # Work around older TaskManager objects that don't have submit_task
         if not hasattr(self.manager, 'submit_task'):
             self.manager.submit_task = self.manager.submitTask
 
-        (self.verify, self.cert) = cloud_config.get_requests_verify_args()
+        (self.verify, self.cert) = cloud_region.get_requests_verify_args()
         # Turn off urllib3 warnings about insecure certs if we have
         # explicitly configured requests to tell it we do not want
         # cert verification
@@ -226,9 +224,9 @@ class OpenStackCloud(
         self._networks_lock = threading.Lock()
         self._reset_network_caches()
 
-        cache_expiration_time = int(cloud_config.get_cache_expiration_time())
-        cache_class = cloud_config.get_cache_class()
-        cache_arguments = cloud_config.get_cache_arguments()
+        cache_expiration_time = int(cloud_region.get_cache_expiration_time())
+        cache_class = cloud_region.get_cache_class()
+        cache_arguments = cloud_region.get_cache_arguments()
 
         self._resource_caches = {}
 
@@ -236,7 +234,7 @@ class OpenStackCloud(
             self.cache_enabled = True
             self._cache = self._make_cache(
                 cache_class, cache_expiration_time, cache_arguments)
-            expirations = cloud_config.get_cache_expiration()
+            expirations = cloud_region.get_cache_expirations()
             for expire_key in expirations.keys():
                 # Only build caches for things we have list operations for
                 if getattr(
@@ -278,11 +276,11 @@ class OpenStackCloud(
 
         # If server expiration time is set explicitly, use that. Otherwise
         # fall back to whatever it was before
-        self._SERVER_AGE = cloud_config.get_cache_resource_expiration(
+        self._SERVER_AGE = cloud_region.get_cache_resource_expiration(
             'server', self._SERVER_AGE)
-        self._PORT_AGE = cloud_config.get_cache_resource_expiration(
+        self._PORT_AGE = cloud_region.get_cache_resource_expiration(
             'port', self._PORT_AGE)
-        self._FLOAT_AGE = cloud_config.get_cache_resource_expiration(
+        self._FLOAT_AGE = cloud_region.get_cache_resource_expiration(
             'floating_ip', self._FLOAT_AGE)
 
         self._container_cache = dict()
@@ -296,7 +294,7 @@ class OpenStackCloud(
         self._local_ipv6 = (
             _utils.localhost_supports_ipv6() if not self.force_ipv4 else False)
 
-        self.cloud_config = cloud_config
+        self.cloud_config = cloud_region
 
     def connect_as(self, **kwargs):
         """Make a new OpenStackCloud object with new auth context.
@@ -324,7 +322,7 @@ class OpenStackCloud(
         if self.cloud_config._openstack_config:
             config = self.cloud_config._openstack_config
         else:
-            config = os_client_config.OpenStackConfig(
+            config = loader.OpenStackConfig(
                 app_name=self.cloud_config._app_name,
                 app_version=self.cloud_config._app_version,
                 load_yaml_config=False)
