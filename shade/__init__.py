@@ -20,7 +20,9 @@ from openstack.config import loader
 import pbr.version
 import requestsexceptions
 
+# The star import is for backwards compat reasons
 from shade.exc import *  # noqa
+from shade import exc
 from shade.openstackcloud import OpenStackCloud
 from shade.operatorcloud import OperatorCloud
 from shade import _log
@@ -95,7 +97,7 @@ def openstack_clouds(
                 if f.name == cloud
             ]
     except keystoneauth1.exceptions.auth_plugins.NoMatchingPlugin as e:
-        raise OpenStackCloudException(
+        raise exc.OpenStackCloudException(
             "Invalid cloud configuration: {exc}".format(exc=str(e)))
 
 
@@ -107,7 +109,7 @@ def openstack_cloud(
     try:
         cloud_config = config.get_one_cloud(**kwargs)
     except keystoneauth1.exceptions.auth_plugins.NoMatchingPlugin as e:
-        raise OpenStackCloudException(
+        raise exc.OpenStackCloudException(
             "Invalid cloud configuration: {exc}".format(exc=str(e)))
     return OpenStackCloud(
         cloud_config=cloud_config, strict=strict,
@@ -122,7 +124,7 @@ def operator_cloud(
     try:
         cloud_config = config.get_one_cloud(**kwargs)
     except keystoneauth1.exceptions.auth_plugins.NoMatchingPlugin as e:
-        raise OpenStackCloudException(
+        raise exc.OpenStackCloudException(
             "Invalid cloud configuration: {exc}".format(exc=str(e)))
     return OperatorCloud(
         cloud_config=cloud_config, strict=strict,
