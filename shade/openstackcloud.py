@@ -2143,6 +2143,28 @@ class OpenStackCloud(
         return self._normalize_secgroups(
             self._get_and_munchify('security_groups', data))
 
+    def iter_servers(self, detailed=False,
+                     all_projects=False, bare=False,
+                     filters=None):
+        """Iterate over all available servers.
+
+        :param detailed: Whether or not to add detailed additional information.
+                         Defaults to False.
+        :param all_projects: Whether to list servers from all projects or just
+                             the current auth scoped project.
+        :param bare: Whether to skip adding any additional information to the
+                     server record. Defaults to False, meaning the addresses
+                     dict will be populated as needed from neutron. Setting
+                     to True implies detailed = False.
+        :param filters: Additional query parameters passed to the API server.
+
+        :yields: Lists of server ``munch.Munch`` (one list per each chunk).
+        """
+        for servers in self._iter_servers(detailed=detailed,
+                                          all_projects=all_projects,
+                                          bare=bare, filters=filters):
+            yield servers
+
     def list_servers(self, detailed=False, all_projects=False, bare=False,
                      filters=None):
         """List all available servers.
@@ -2172,30 +2194,35 @@ class OpenStackCloud(
             if self._servers_lock.acquire(first_run):
                 try:
                     if not (first_run and self._servers is not None):
-                        self._servers = self._list_servers(
-                            detailed=detailed,
-                            all_projects=all_projects,
-                            bare=bare,
-                            filters=filters)
+                        servers = []
+                        for chunk in self._iter_servers(
+                                detailed=detailed, all_projects=all_projects,
+                                bare=bare, filters=filters):
+                            servers.extend(chunk)
+                        self._servers = servers
                         self._servers_time = time.time()
                 finally:
                     self._servers_lock.release()
         return self._servers
 
-    def _list_servers(self, detailed=False, all_projects=False, bare=False,
+    def _iter_servers(self, detailed=False,
+                      all_projects=False, bare=False,
                       filters=None):
         error_msg = "Error fetching server list on {cloud}:{region}:".format(
             cloud=self.name,
             region=self.region_name)
-
         params = filters or {}
         if all_projects:
             params['all_tenants'] = True
         data = self._compute_client.get(
             '/servers/detail', params=params, error_message=error_msg)
-        unprocessed_servers = {'servers': []}
         while 'servers_links' in data:
-            unprocessed_servers['servers'].extend(data['servers'])
+            servers = self._normalize_servers(
+                self._get_and_munchify('servers', data))
+            yield [
+                self._expand_server(server, detailed, bare)
+                for server in servers
+            ]
             parse_result = urllib.parse.urlparse(
                 data['servers_links'][0]['href'])
             pagination_params = dict(
@@ -2203,11 +2230,9 @@ class OpenStackCloud(
             params.update(pagination_params)
             data = self._compute_client.get(
                 '/servers/detail', params=params, error_message=error_msg)
-        unprocessed_servers['servers'].extend(data['servers'])
-
         servers = self._normalize_servers(
-            self._get_and_munchify('servers', unprocessed_servers))
-        return [
+            self._get_and_munchify('servers', data))
+        yield [
             self._expand_server(server, detailed, bare)
             for server in servers
         ]
