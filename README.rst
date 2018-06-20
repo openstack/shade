@@ -77,3 +77,4 @@ Links
 * `Documentation <https://docs.openstack.org/shade/latest/>`_
 * `PyPI <https://pypi.org/project/shade/>`_
 * `Mailing list <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-infra>`_
+* `Release notes <https://docs.openstack.org/releasenotes/shade>`_
