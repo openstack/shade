@@ -13,9 +13,9 @@ import importlib
 import warnings
 
 from keystoneauth1 import plugin
+from openstack.cloud import _utils
 from os_client_config import constructors
 
-from shade import _utils
 from shade import exc
 
 

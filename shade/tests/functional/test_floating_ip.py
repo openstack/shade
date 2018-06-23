@@ -21,9 +21,9 @@ Functional tests for floating IP resource.
 
 import pprint
 
+from openstack import utils
 from testtools import content
 
-from shade import _utils
 from shade import meta
 from shade.exc import OpenStackCloudException
 from shade.tests.functional import base
@@ -193,7 +193,7 @@ class TestFloatingIP(base.BaseFunctionalTestCase):
         # ToDo: remove the following iteration when create_server waits for
         # the IP to be attached
         ip = None
-        for _ in _utils._iterate_timeout(
+        for _ in utils.iterate_timeout(
                 self.timeout, "Timeout waiting for IP address to be attached"):
             ip = meta.get_server_external_ipv4(self.user_cloud, new_server)
             if ip is not None:
@@ -213,7 +213,7 @@ class TestFloatingIP(base.BaseFunctionalTestCase):
         # ToDo: remove the following iteration when create_server waits for
         # the IP to be attached
         ip = None
-        for _ in _utils._iterate_timeout(
+        for _ in utils.iterate_timeout(
                 self.timeout, "Timeout waiting for IP address to be attached"):
             ip = meta.get_server_external_ipv4(self.user_cloud, new_server)
             if ip is not None:

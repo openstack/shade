@@ -22,31 +22,28 @@ import json
 import jsonpatch
 import operator
 import six
-import threading
 import time
 import warnings
 
 import dogpile.cache
 import munch
-import requestsexceptions
 from six.moves import urllib
 
 import keystoneauth1.exceptions
 import keystoneauth1.session
 import os
+from openstack.cloud import _utils
 from openstack.config import loader
+from openstack import connection
+from openstack import task_manager
+from openstack import utils
 
-import shade
-from shade import _adapter
 from shade import exc
 from shade._heat import event_utils
 from shade._heat import template_utils
 from shade import _log
 from shade import _legacy_clients
-from shade import _normalize
 from shade import meta
-from shade import task_manager
-from shade import _utils
 
 OBJECT_MD5_KEY = 'x-object-meta-x-shade-md5'
 OBJECT_SHA256_KEY = 'x-object-meta-x-shade-sha256'
@@ -98,7 +95,7 @@ def _no_pending_stacks(stacks):
 
 
 class OpenStackCloud(
-        _normalize.Normalizer,
+        connection.Connection,
         _legacy_clients.LegacyClientFactoryMixin):
     """Represent a connection to an OpenStack Cloud.
 
@@ -135,166 +132,29 @@ class OpenStackCloud(
             app_version=None,
             use_direct_get=False,
             **kwargs):
+        super(OpenStackCloud, self).__init__(
+            config=cloud_config,
+            strict=strict,
+            task_manager=manager,
+            app_name=app_name,
+            app_version=app_version,
+            use_direct_get=use_direct_get,
+            **kwargs)
 
+        # Logging in shade is based on 'shade' not 'openstack'
         self.log = _log.setup_logging('shade')
 
-        if not cloud_config:
-            config = loader.OpenStackConfig(
-                app_name=app_name, app_version=app_version)
+        # shade has this as cloud_config, but sdk has config
+        self.cloud_config = self.config
 
-            cloud_config = config.get_one(**kwargs)
-        cloud_region = cloud_config
-
-        self.name = cloud_region.name
-        self.auth = cloud_region.get_auth_args()
-        self.region_name = cloud_region.region_name
-        self.default_interface = cloud_region.get_interface()
-        self.private = cloud_region.config.get('private', False)
-        self.api_timeout = cloud_region.config['api_timeout']
-        self.image_api_use_tasks = cloud_region.config['image_api_use_tasks']
-        self.secgroup_source = cloud_region.config['secgroup_source']
-        self.force_ipv4 = cloud_region.force_ipv4
-        self.strict_mode = strict
-        self._extra_config = cloud_region.get_client_config(
+        # Backwards compat for get_extra behavior
+        self._extra_config = self.config.get_client_config(
             'shade', {
                 'get_flavor_extra_specs': True,
             })
 
-        if manager is not None:
-            self.manager = manager
-        else:
-            self.manager = task_manager.TaskManager(
-                name=':'.join([self.name, self.region_name]), client=self)
-
-        self._external_ipv4_names = cloud_region.get_external_ipv4_networks()
-        self._internal_ipv4_names = cloud_region.get_internal_ipv4_networks()
-        self._external_ipv6_names = cloud_region.get_external_ipv6_networks()
-        self._internal_ipv6_names = cloud_region.get_internal_ipv6_networks()
-        self._nat_destination = cloud_region.get_nat_destination()
-        self._default_network = cloud_region.get_default_network()
-
-        self._floating_ip_source = cloud_region.config.get(
-            'floating_ip_source')
-        if self._floating_ip_source:
-            if self._floating_ip_source.lower() == 'none':
-                self._floating_ip_source = None
-            else:
-                self._floating_ip_source = self._floating_ip_source.lower()
-
-        self._use_external_network = cloud_region.config.get(
-            'use_external_network', True)
-        self._use_internal_network = cloud_region.config.get(
-            'use_internal_network', True)
-
-        # Work around older TaskManager objects that don't have submit_task
-        if not hasattr(self.manager, 'submit_task'):
-            self.manager.submit_task = self.manager.submitTask
-
-        (self.verify, self.cert) = cloud_region.get_requests_verify_args()
-        # Turn off urllib3 warnings about insecure certs if we have
-        # explicitly configured requests to tell it we do not want
-        # cert verification
-        if not self.verify:
-            self.log.debug(
-                "Turning off Insecure SSL warnings since verify=False")
-            category = requestsexceptions.InsecureRequestWarning
-            if category:
-                # InsecureRequestWarning references a Warning class or is None
-                warnings.filterwarnings('ignore', category=category)
-
-        self._disable_warnings = {}
-        self.use_direct_get = use_direct_get
-
-        self._servers = None
-        self._servers_time = 0
-        self._servers_lock = threading.Lock()
-
-        self._ports = None
-        self._ports_time = 0
-        self._ports_lock = threading.Lock()
-
-        self._floating_ips = None
-        self._floating_ips_time = 0
-        self._floating_ips_lock = threading.Lock()
-
-        self._floating_network_by_router = None
-        self._floating_network_by_router_run = False
-        self._floating_network_by_router_lock = threading.Lock()
-
-        self._networks_lock = threading.Lock()
-        self._reset_network_caches()
-
-        cache_expiration_time = int(cloud_region.get_cache_expiration_time())
-        cache_class = cloud_region.get_cache_class()
-        cache_arguments = cloud_region.get_cache_arguments()
-
-        self._resource_caches = {}
-
-        if cache_class != 'dogpile.cache.null':
-            self.cache_enabled = True
-            self._cache = self._make_cache(
-                cache_class, cache_expiration_time, cache_arguments)
-            expirations = cloud_region.get_cache_expirations()
-            for expire_key in expirations.keys():
-                # Only build caches for things we have list operations for
-                if getattr(
-                        self, 'list_{0}'.format(expire_key), None):
-                    self._resource_caches[expire_key] = self._make_cache(
-                        cache_class, expirations[expire_key], cache_arguments)
-
-            self._SERVER_AGE = DEFAULT_SERVER_AGE
-            self._PORT_AGE = DEFAULT_PORT_AGE
-            self._FLOAT_AGE = DEFAULT_FLOAT_AGE
-        else:
-            self.cache_enabled = False
-
-            def _fake_invalidate(unused):
-                pass
-
-            class _FakeCache(object):
-                def invalidate(self):
-                    pass
-
-            # Don't cache list_servers if we're not caching things.
-            # Replace this with a more specific cache configuration
-            # soon.
-            self._SERVER_AGE = 0
-            self._PORT_AGE = 0
-            self._FLOAT_AGE = 0
-            self._cache = _FakeCache()
-            # Undecorate cache decorated methods. Otherwise the call stacks
-            # wind up being stupidly long and hard to debug
-            for method in _utils._decorated_methods:
-                meth_obj = getattr(self, method, None)
-                if not meth_obj:
-                    continue
-                if (hasattr(meth_obj, 'invalidate')
-                        and hasattr(meth_obj, 'func')):
-                    new_func = functools.partial(meth_obj.func, self)
-                    new_func.invalidate = _fake_invalidate
-                    setattr(self, method, new_func)
-
-        # If server expiration time is set explicitly, use that. Otherwise
-        # fall back to whatever it was before
-        self._SERVER_AGE = cloud_region.get_cache_resource_expiration(
-            'server', self._SERVER_AGE)
-        self._PORT_AGE = cloud_region.get_cache_resource_expiration(
-            'port', self._PORT_AGE)
-        self._FLOAT_AGE = cloud_region.get_cache_resource_expiration(
-            'floating_ip', self._FLOAT_AGE)
-
-        self._container_cache = dict()
-        self._file_hash_cache = dict()
-
-        self._keystone_session = None
-
+        # Place to store legacy client objects
         self._legacy_clients = {}
-        self._raw_clients = {}
-
-        self._local_ipv6 = (
-            _utils.localhost_supports_ipv6() if not self.force_ipv4 else False)
-
-        self.cloud_config = cloud_region
 
     def connect_as(self, **kwargs):
         """Make a new OpenStackCloud object with new auth context.
@@ -465,98 +325,6 @@ class OpenStackCloud(
             return int(version[0])
         return version
 
-    def _get_versioned_client(
-            self, service_type, min_version=None, max_version=None):
-        config_version = self.cloud_config.get_api_version(service_type)
-        config_major = self._get_major_version_id(config_version)
-        max_major = self._get_major_version_id(max_version)
-        min_major = self._get_major_version_id(min_version)
-        # NOTE(mordred) The shade logic for versions is slightly different
-        # than the ksa Adapter constructor logic. shade knows the versions
-        # it knows, and uses them when it detects them. However, if a user
-        # requests a version, and it's not found, and a different one shade
-        # does know about it found, that's a warning in shade.
-        if config_version:
-            if min_major and config_major < min_major:
-                raise exc.OpenStackCloudException(
-                    "Version {config_version} requested for {service_type}"
-                    " but shade understands a minimum of {min_version}".format(
-                        config_version=config_version,
-                        service_type=service_type,
-                        min_version=min_version))
-            elif max_major and config_major > max_major:
-                raise exc.OpenStackCloudException(
-                    "Version {config_version} requested for {service_type}"
-                    " but shade understands a maximum of {max_version}".format(
-                        config_version=config_version,
-                        service_type=service_type,
-                        max_version=max_version))
-            request_min_version = config_version
-            request_max_version = '{version}.latest'.format(
-                version=config_major)
-            adapter = _adapter.ShadeAdapter(
-                session=self.keystone_session,
-                manager=self.manager,
-                service_type=self.cloud_config.get_service_type(service_type),
-                service_name=self.cloud_config.get_service_name(service_type),
-                interface=self.cloud_config.get_interface(service_type),
-                endpoint_override=self.cloud_config.get_endpoint(service_type),
-                region_name=self.cloud_config.region,
-                min_version=request_min_version,
-                max_version=request_max_version,
-                shade_logger=self.log)
-            if adapter.get_endpoint():
-                return adapter
-
-        adapter = _adapter.ShadeAdapter(
-            session=self.keystone_session,
-            manager=self.manager,
-            service_type=self.cloud_config.get_service_type(service_type),
-            service_name=self.cloud_config.get_service_name(service_type),
-            interface=self.cloud_config.get_interface(service_type),
-            endpoint_override=self.cloud_config.get_endpoint(service_type),
-            region_name=self.cloud_config.region,
-            min_version=min_version,
-            max_version=max_version,
-            shade_logger=self.log)
-
-        # data.api_version can be None if no version was detected, such
-        # as with neutron
-        api_version = adapter.get_api_major_version(
-            endpoint_override=self.cloud_config.get_endpoint(service_type))
-        api_major = self._get_major_version_id(api_version)
-
-        # If we detect a different version that was configured, warn the user.
-        # shade still knows what to do - but if the user gave us an explicit
-        # version and we couldn't find it, they may want to investigate.
-        if api_version and (api_major != config_major):
-            warning_msg = (
-                '{service_type} is configured for {config_version}'
-                ' but only {api_version} is available. shade is happy'
-                ' with this version, but if you were trying to force an'
-                ' override, that did not happen. You may want to check'
-                ' your cloud, or remove the version specification from'
-                ' your config.'.format(
-                    service_type=service_type,
-                    config_version=config_version,
-                    api_version='.'.join([str(f) for f in api_version])))
-            self.log.debug(warning_msg)
-            warnings.warn(warning_msg)
-        return adapter
-
-    def _get_raw_client(
-            self, service_type, api_version=None, endpoint_override=None):
-        return _adapter.ShadeAdapter(
-            session=self.keystone_session,
-            manager=self.manager,
-            service_type=self.cloud_config.get_service_type(service_type),
-            service_name=self.cloud_config.get_service_name(service_type),
-            interface=self.cloud_config.get_interface(service_type),
-            endpoint_override=self.cloud_config.get_endpoint(
-                service_type) or endpoint_override,
-            region_name=self.cloud_config.region,
-            shade_logger=self.log)
-
     def _is_client_version(self, client, version):
         client_name = '_{client}_client'.format(client=client)
         client = getattr(self, client_name)
@@ -686,16 +454,7 @@ class OpenStackCloud(
 
     @property
     def keystone_session(self):
-        if self._keystone_session is None:
-            try:
-                self._keystone_session = self.cloud_config.get_session()
-                if hasattr(self._keystone_session, 'additional_user_agent'):
-                    self._keystone_session.additional_user_agent.append(
-                        ('shade', shade.__version__))
-            except Exception as e:
-                raise exc.OpenStackCloudException(
-                    "Error authenticating to keystone: %s " % str(e))
-        return self._keystone_session
+        return self.session
 
     @property
     def _keystone_catalog(self):
@@ -774,7 +533,7 @@ class OpenStackCloud(
     def _get_current_location(self, project_id=None, zone=None):
         return munch.Munch(
             cloud=self.name,
-            region_name=self.region_name,
+            region_name=self.config.region_name,
             zone=zone,
             project=self._get_project_info(project_id),
         )
@@ -887,46 +646,6 @@ class OpenStackCloud(
         to fail.
         """
         return meta.get_and_munchify(key, data)
-
-    @_utils.cache_on_arguments()
-    def list_projects(self, domain_id=None, name_or_id=None, filters=None):
-        """List projects.
-
-        With no parameters, returns a full listing of all visible projects.
-
-        :param domain_id: domain ID to scope the searched projects.
-        :param name_or_id: project name or ID.
-        :param filters: a dict containing additional filters to use
-            OR
-            A string containing a jmespath expression for further filtering.
-            Example:: "[?last_name==`Smith`] | [?other.gender]==`Female`]"
-
-        :returns: a list of ``munch.Munch`` containing the projects
-
-        :raises: ``OpenStackCloudException``: if something goes wrong during
-            the OpenStack API call.
-        """
-        kwargs = dict(
-            filters=filters,
-            domain_id=domain_id)
-        if self._is_client_version('identity', 3):
-            kwargs['obj_name'] = 'project'
-
-        pushdown, filters = _normalize._split_filters(**kwargs)
-
-        try:
-            if self._is_client_version('identity', 3):
-                key = 'projects'
-            else:
-                key = 'tenants'
-            data = self._identity_client.get(
-                '/{endpoint}'.format(endpoint=key), params=pushdown)
-            projects = self._normalize_projects(
-                self._get_and_munchify(key, data))
-        except Exception as e:
-            self.log.debug("Failed to list projects", exc_info=True)
-            raise exc.OpenStackCloudException(str(e))
-        return _utils._filter_list(projects, name_or_id, filters)
 
     def search_projects(self, name_or_id=None, filters=None, domain_id=None):
         '''Backwards compatibility method for search_projects
@@ -1438,7 +1157,11 @@ class OpenStackCloud(
         return self.name
 
     def get_region(self):
-        return self.region_name
+        return self.config.region_name
+
+    @property
+    def region_name(self):
+        return self.config.region_name
 
     def get_flavor_name(self, flavor_id):
         flavor = self.get_flavor(flavor_id, get_extra=False)
@@ -1481,7 +1204,7 @@ class OpenStackCloud(
                 " {error}".format(
                     service=service_key,
                     cloud=self.name,
-                    region=self.region_name,
+                    region=self.config.region_name,
                     error=str(e)))
         return endpoint
 
@@ -1964,29 +1687,11 @@ class OpenStackCloud(
         """
         if get_extra is None:
             get_extra = self._extra_config['get_flavor_extra_specs']
-        data = self._compute_client.get(
-            '/flavors/detail', params=dict(is_public='None'),
-            error_message="Error fetching flavor list")
-        flavors = self._normalize_flavors(
-            self._get_and_munchify('flavors', data))
 
-        for flavor in flavors:
-            if not flavor.extra_specs and get_extra:
-                endpoint = "/flavors/{id}/os-extra_specs".format(
-                    id=flavor.id)
-                try:
-                    data = self._compute_client.get(
-                        endpoint,
-                        error_message="Error fetching flavor extra specs")
-                    flavor.extra_specs = self._get_and_munchify(
-                        'extra_specs', data)
-                except exc.OpenStackCloudHTTPError as e:
-                    flavor.extra_specs = {}
-                    self.log.debug(
-                        'Fetching extra specs for flavor failed:'
-                        ' %(msg)s', {'msg': str(e)})
-
-        return flavors
+        # This method is already cache-decorated. We don't want to call the
+        # decorated inner-method, we want to call the method it is decorating.
+        return connection.Connection.list_flavors.func(
+            self, get_extra=get_extra)
 
     @_utils.cache_on_arguments(should_cache_fn=_no_pending_stacks)
     def list_stacks(self):
@@ -2210,7 +1915,7 @@ class OpenStackCloud(
                       filters=None):
         error_msg = "Error fetching server list on {cloud}:{region}:".format(
             cloud=self.name,
-            region=self.region_name)
+            region=self.config.region_name)
         params = filters or {}
         if all_projects:
             params['all_tenants'] = True
@@ -3039,32 +2744,10 @@ class OpenStackCloud(
              specs.
         :returns: A flavor ``munch.Munch``.
         """
-        data = self._compute_client.get(
-            '/flavors/{id}'.format(id=id),
-            error_message="Error getting flavor with ID {id}".format(id=id)
-        )
-        flavor = self._normalize_flavor(
-            self._get_and_munchify('flavor', data))
-
         if get_extra is None:
             get_extra = self._extra_config['get_flavor_extra_specs']
-
-        if not flavor.extra_specs and get_extra:
-            endpoint = "/flavors/{id}/os-extra_specs".format(
-                id=flavor.id)
-            try:
-                data = self._compute_client.get(
-                    endpoint,
-                    error_message="Error fetching flavor extra specs")
-                flavor.extra_specs = self._get_and_munchify(
-                    'extra_specs', data)
-            except exc.OpenStackCloudHTTPError as e:
-                flavor.extra_specs = {}
-                self.log.debug(
-                    'Fetching extra specs for flavor failed:'
-                    ' %(msg)s', {'msg': str(e)})
-
-        return flavor
+        return super(OpenStackCloud, self).get_flavor_by_id(
+            id, get_extra=get_extra)
 
     def get_security_group(self, name_or_id, filters=None):
         """Get a security group by name or ID.
@@ -4551,7 +4234,7 @@ class OpenStackCloud(
 
     def wait_for_image(self, image, timeout=3600):
         image_id = image['id']
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 timeout, "Timeout waiting for image to snapshot"):
             self.list_images.invalidate(self)
             image = self.get_image(image_id)
@@ -4590,7 +4273,7 @@ class OpenStackCloud(
             self.delete_object(container=container, name=objname)
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the image to be deleted."):
                 self._get_cache(None).invalidate()
@@ -4820,7 +4503,7 @@ class OpenStackCloud(
         if not wait:
             return self.get_image(response['image_id'])
         try:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the image to finish."):
                 image_obj = self.get_image(response['image_id'])
@@ -4914,7 +4597,7 @@ class OpenStackCloud(
         if not wait:
             return image
         try:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the image to finish."):
                 image_obj = self.get_image(image.id)
@@ -4954,7 +4637,7 @@ class OpenStackCloud(
         if wait:
             start = time.time()
             image_id = None
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the image to import."):
                 try:
@@ -5117,7 +4800,7 @@ class OpenStackCloud(
 
         if wait:
             vol_id = volume['id']
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the volume to be available."):
                 volume = self.get_volume(vol_id)
@@ -5204,7 +4887,7 @@ class OpenStackCloud(
 
         self.list_volumes.invalidate(self)
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the volume to be deleted."):
 
@@ -5292,7 +4975,7 @@ class OpenStackCloud(
                     volume=volume['id'], server=server['id'])))
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for volume %s to detach." % volume['id']):
                 try:
@@ -5360,7 +5043,7 @@ class OpenStackCloud(
                                                server_id=server['id']))
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for volume %s to attach." % volume['id']):
                 try:
@@ -5435,7 +5118,7 @@ class OpenStackCloud(
         snapshot = self._get_and_munchify('snapshot', data)
         if wait:
             snapshot_id = snapshot['id']
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the volume snapshot to be available."
             ):
@@ -5531,7 +5214,7 @@ class OpenStackCloud(
             backup_id = backup['id']
             msg = ("Timeout waiting for the volume backup {} to be "
                    "available".format(backup_id))
-            for _ in _utils._iterate_timeout(timeout, msg):
+            for _ in utils.iterate_timeout(timeout, msg):
                 backup = self.get_volume_backup(backup_id)
 
                 if backup['status'] == 'available':
@@ -5622,7 +5305,7 @@ class OpenStackCloud(
                 error_message=msg)
         if wait:
             msg = "Timeout waiting for the volume backup to be deleted."
-            for count in _utils._iterate_timeout(timeout, msg):
+            for count in utils.iterate_timeout(timeout, msg):
                 if not self.get_volume_backup(volume_backup['id']):
                     break
 
@@ -5652,7 +5335,7 @@ class OpenStackCloud(
             error_message="Error in deleting volume snapshot")
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the volume snapshot to be deleted."):
                 if not self.get_volume_snapshot(volumesnapshot['id']):
@@ -5953,7 +5636,7 @@ class OpenStackCloud(
             # if we've provided a port as a parameter
             if wait:
                 try:
-                    for count in _utils._iterate_timeout(
+                    for count in utils.iterate_timeout(
                             timeout,
                             "Timeout waiting for the floating IP"
                             " to be ACTIVE",
@@ -6159,7 +5842,7 @@ class OpenStackCloud(
         if wait:
             # Wait for the address to be assigned to the server
             server_id = server['id']
-            for _ in _utils._iterate_timeout(
+            for _ in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for the floating IP to be attached.",
                     wait=self._SERVER_AGE):
@@ -6191,7 +5874,7 @@ class OpenStackCloud(
             timeout = self._PORT_AGE * 2
         else:
             timeout = None
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 timeout,
                 "Timeout waiting for port to show up in list",
                 wait=self._PORT_AGE):
@@ -6622,7 +6305,7 @@ class OpenStackCloud(
                     'Volume {boot_volume} is not a valid volume'
                     ' in {cloud}:{region}'.format(
                         boot_volume=boot_volume,
-                        cloud=self.name, region=self.region_name))
+                        cloud=self.name, region=self.config.region_name))
             block_mapping = {
                 'boot_index': '0',
                 'delete_on_termination': terminate_volume,
@@ -6643,7 +6326,7 @@ class OpenStackCloud(
                     'Image {image} is not a valid image in'
                     ' {cloud}:{region}'.format(
                         image=image,
-                        cloud=self.name, region=self.region_name))
+                        cloud=self.name, region=self.config.region_name))
 
             block_mapping = {
                 'boot_index': '0',
@@ -6673,7 +6356,7 @@ class OpenStackCloud(
                     'Volume {volume} is not a valid volume'
                     ' in {cloud}:{region}'.format(
                         volume=volume,
-                        cloud=self.name, region=self.region_name))
+                        cloud=self.name, region=self.config.region_name))
             block_mapping = {
                 'boot_index': '-1',
                 'delete_on_termination': False,
@@ -6865,7 +6548,7 @@ class OpenStackCloud(
                         'Network {network} is not a valid network in'
                         ' {cloud}:{region}'.format(
                             network=network,
-                            cloud=self.name, region=self.region_name))
+                            cloud=self.name, region=self.config.region_name))
                 nics.append({'net-id': network_obj['id']})
 
             kwargs['nics'] = nics
@@ -6977,7 +6660,7 @@ class OpenStackCloud(
         start_time = time.time()
 
         # There is no point in iterating faster than the list_servers cache
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 timeout,
                 timeout_message,
                 # if _SERVER_AGE is 0 we still want to wait a bit
@@ -7067,7 +6750,7 @@ class OpenStackCloud(
                 self._normalize_server(server), bare=bare, detailed=detailed)
 
         admin_pass = server.get('adminPass') or admin_pass
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 timeout,
                 "Timeout waiting for server {0} to "
                 "rebuild.".format(server_id),
@@ -7223,7 +6906,7 @@ class OpenStackCloud(
                 and self.get_volumes(server)):
             reset_volume_cache = True
 
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 timeout,
                 "Timed out waiting for server to get deleted.",
                 # if _SERVER_AGE is 0 we still want to wait a bit
@@ -9057,7 +8740,7 @@ class OpenStackCloud(
         with _utils.shade_exceptions("Error inspecting machine"):
             machine = self.node_set_provision_state(machine['uuid'], 'inspect')
             if wait:
-                for count in _utils._iterate_timeout(
+                for count in utils.iterate_timeout(
                         timeout,
                         "Timeout waiting for node transition to "
                         "target state of 'inspect'"):
@@ -9176,7 +8859,7 @@ class OpenStackCloud(
         with _utils.shade_exceptions(
                 "Error transitioning node to available state"):
             if wait:
-                for count in _utils._iterate_timeout(
+                for count in utils.iterate_timeout(
                         timeout,
                         "Timeout waiting for node transition to "
                         "available state"):
@@ -9212,7 +8895,7 @@ class OpenStackCloud(
                     # Note(TheJulia): We need to wait for the lock to clear
                     # before we attempt to set the machine into provide state
                     # which allows for the transition to available.
-                    for count in _utils._iterate_timeout(
+                    for count in utils.iterate_timeout(
                             lock_timeout,
                             "Timeout waiting for reservation to clear "
                             "before setting provide state"):
@@ -9311,7 +8994,7 @@ class OpenStackCloud(
                                           microversion=version)
 
             if wait:
-                for count in _utils._iterate_timeout(
+                for count in utils.iterate_timeout(
                         timeout,
                         "Timeout waiting for machine to be deleted"):
                     if not self.get_machine(uuid):
@@ -9552,7 +9235,7 @@ class OpenStackCloud(
                                                 error_message=msg,
                                                 microversion=version)
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for node transition to "
                     "target state of '%s'" % state):
@@ -9776,7 +9459,7 @@ class OpenStackCloud(
         else:
             msg = 'Waiting for lock to be released for node {node}'.format(
                 node=node['uuid'])
-            for count in _utils._iterate_timeout(timeout, msg, 2):
+            for count in utils.iterate_timeout(timeout, msg, 2):
                 current_node = self.get_machine(node['uuid'])
                 if current_node['reservation'] is None:
                     return
@@ -10924,7 +10607,7 @@ class OpenStackCloud(
             self._identity_client.put(url, error_message=error_msg)
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for role to be granted"):
                 if self.list_role_assignments(filters=filters):
@@ -11003,7 +10686,7 @@ class OpenStackCloud(
             self._identity_client.delete(url, error_message=error_msg)
 
         if wait:
-            for count in _utils._iterate_timeout(
+            for count in utils.iterate_timeout(
                     timeout,
                     "Timeout waiting for role to be revoked"):
                 if not self.list_role_assignments(filters=filters):

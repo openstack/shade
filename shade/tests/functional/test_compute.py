@@ -20,10 +20,11 @@ Functional tests for `shade` compute methods.
 from fixtures import TimeoutException
 import six
 
+from openstack import utils
+
 from shade import exc
 from shade.tests.functional import base
 from shade.tests.functional.util import pick_flavor
-from shade import _utils
 
 
 class TestCompute(base.BaseFunctionalTestCase):
@@ -291,7 +292,7 @@ class TestCompute(base.BaseFunctionalTestCase):
         # Volumes do not show up as unattached for a bit immediately after
         # deleting a server that had had a volume attached. Yay for eventual
         # consistency!
-        for count in _utils._iterate_timeout(
+        for count in utils.iterate_timeout(
                 60,
                 'Timeout waiting for volume {volume_id} to detach'.format(
                     volume_id=volume_id)):

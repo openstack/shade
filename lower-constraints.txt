@@ -13,13 +13,13 @@ iso8601==0.1.12
 jmespath==0.9.3
 jsonpatch==1.21
 jsonpointer==2.0
-keystoneauth1==3.4.0
+keystoneauth1==3.8.0
 linecache2==1.0.0
 mock==2.0.0
 mox3==0.20.0
 munch==2.2.0
 netifaces==0.10.6
-openstacksdk==0.13.0
+openstacksdk==0.15.0
 os-client-config==1.28.0
 os-service-types==1.2.0
 oslotest==3.2.0

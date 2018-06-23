@@ -15,10 +15,10 @@
 import functools
 
 from openstack import exceptions
+from openstack.cloud import _utils
 from openstack.config import loader
 
 import shade
-from shade import _utils
 
 
 class OpenStackInventory(object):

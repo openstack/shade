@@ -16,7 +16,6 @@ import uuid
 import testtools
 
 import shade
-from shade import _utils
 from shade import exc
 from shade.tests import fakes
 from shade.tests.unit import base
@@ -378,40 +377,6 @@ class TestShade(base.RequestsMockTestCase):
         })
 
         self.assert_calls()
-
-    def test_iterate_timeout_bad_wait(self):
-        with testtools.ExpectedException(
-                exc.OpenStackCloudException,
-                "Wait value must be an int or float value."):
-            for count in _utils._iterate_timeout(
-                    1, "test_iterate_timeout_bad_wait", wait="timeishard"):
-                pass
-
-    @mock.patch('time.sleep')
-    def test_iterate_timeout_str_wait(self, mock_sleep):
-        iter = _utils._iterate_timeout(
-            10, "test_iterate_timeout_str_wait", wait="1.6")
-        next(iter)
-        next(iter)
-        mock_sleep.assert_called_with(1.6)
-
-    @mock.patch('time.sleep')
-    def test_iterate_timeout_int_wait(self, mock_sleep):
-        iter = _utils._iterate_timeout(
-            10, "test_iterate_timeout_int_wait", wait=1)
-        next(iter)
-        next(iter)
-        mock_sleep.assert_called_with(1.0)
-
-    @mock.patch('time.sleep')
-    def test_iterate_timeout_timeout(self, mock_sleep):
-        message = "timeout test"
-        with testtools.ExpectedException(
-                exc.OpenStackCloudTimeout,
-                message):
-            for count in _utils._iterate_timeout(0.1, message, wait=1):
-                pass
-        mock_sleep.assert_called_with(1.0)
 
     def test__nova_extensions(self):
         body = [

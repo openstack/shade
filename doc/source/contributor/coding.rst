@@ -67,13 +67,13 @@ Returned Resources
 ==================
 
 Complex objects returned to the caller must be a `munch.Munch` type. The
-`shade._adapter.Adapter` class makes resources into `munch.Munch`.
+`openstack._adapter.Adapter` class makes resources into `munch.Munch`.
 
 All objects should be normalized. It is shade's purpose in life to make
 OpenStack consistent for end users, and this means not trusting the clouds
 to return consistent objects. There should be a normalize function in
-`shade/_normalize.py` that is applied to objects before returning them to
-the user. See :doc:`../user/model` for further details on object model
+`sopenstack/cloud/_normalize.py` that is applied to objects before returning
+them to the user. See :doc:`../user/model` for further details on object model
 requirements.
 
 Fields should not be in the normalization contract if we cannot commit to
