@@ -22,7 +22,7 @@ from shade.tests import fakes
 from shade.tests.unit import base
 
 
-class TestInventory(base.TestCase):
+class TestInventory(base.RequestsMockTestCase):
 
     def setUp(self):
         super(TestInventory, self).setUp()

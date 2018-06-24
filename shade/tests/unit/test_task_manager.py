@@ -68,7 +68,7 @@ class TaskTestAsync(task_manager.Task):
         pass
 
 
-class TestTaskManager(base.TestCase):
+class TestTaskManager(base.RequestsMockTestCase):
 
     def setUp(self):
         super(TestTaskManager, self).setUp()

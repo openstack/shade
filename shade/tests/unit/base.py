@@ -449,6 +449,8 @@ class RequestsMockTestCase(BaseTestCase):
             cloud=test_cloud, validate=True, **kwargs)
         self.cloud = shade.OpenStackCloud(
             cloud_config=self.cloud_config)
+        self.strict_cloud = shade.OpenStackCloud(
+            cloud_config=self.cloud_config, strict=True)
         self.op_cloud = shade.OperatorCloud(
             cloud_config=self.cloud_config)
 

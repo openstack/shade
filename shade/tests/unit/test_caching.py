@@ -549,7 +549,7 @@ class TestMemoryCache(base.RequestsMockTestCase):
             self.cloud.list_images())
 
 
-class TestBogusAuth(base.TestCase):
+class TestBogusAuth(base.RequestsMockTestCase):
 
     def setUp(self):
         super(TestBogusAuth, self).setUp(
