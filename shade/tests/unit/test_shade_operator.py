@@ -11,7 +11,6 @@
 # under the License.
 
 import mock
-import munch
 import testtools
 
 from openstack.config import cloud_region
@@ -29,41 +28,49 @@ class TestShadeOperator(base.RequestsMockTestCase):
     def test_operator_cloud(self):
         self.assertIsInstance(self.op_cloud, shade.OperatorCloud)
 
-    @mock.patch.object(shade.OpenStackCloud, '_image_client')
-    def test_get_image_name(self, mock_client):
+    def test_get_image_name(self):
+        self.use_glance()
 
-        fake_image = munch.Munch(
-            id='22',
-            name='22 name',
-            status='success')
-        mock_client.get.return_value = [fake_image]
-        self.assertEqual('22 name', self.op_cloud.get_image_name('22'))
-        self.assertEqual('22 name', self.op_cloud.get_image_name('22 name'))
+        image_id = self.getUniqueString()
+        fake_image = fakes.make_fake_image(image_id=image_id)
+        list_return = {'images': [fake_image]}
 
-    @mock.patch.object(shade.OpenStackCloud, '_image_client')
-    def test_get_image_id(self, mock_client):
+        self.register_uris([
+            dict(method='GET',
+                 uri='https://image.example.com/v2/images',
+                 json=list_return),
+            dict(method='GET',
+                 uri='https://image.example.com/v2/images',
+                 json=list_return),
+        ])
 
-        fake_image = munch.Munch(
-            id='22',
-            name='22 name',
-            status='success')
-        mock_client.get.return_value = [fake_image]
-        self.assertEqual('22', self.op_cloud.get_image_id('22'))
-        self.assertEqual('22', self.op_cloud.get_image_id('22 name'))
-
-    @mock.patch.object(cloud_region.CloudRegion, 'get_endpoint')
-    def test_get_session_endpoint_provided(self, fake_get_endpoint):
-        fake_get_endpoint.return_value = 'http://fake.url'
+        self.assertEqual('fake_image', self.op_cloud.get_image_name(image_id))
         self.assertEqual(
-            'http://fake.url', self.op_cloud.get_session_endpoint('image'))
+            'fake_image', self.op_cloud.get_image_name('fake_image'))
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
-    def test_get_session_endpoint_session(self, get_session_mock):
-        session_mock = mock.Mock()
-        session_mock.get_endpoint.return_value = 'http://fake.url'
-        get_session_mock.return_value = session_mock
+        self.assert_calls()
+
+    def test_get_image_id(self):
+        self.use_glance()
+
+        image_id = self.getUniqueString()
+        fake_image = fakes.make_fake_image(image_id=image_id)
+        list_return = {'images': [fake_image]}
+
+        self.register_uris([
+            dict(method='GET',
+                 uri='https://image.example.com/v2/images',
+                 json=list_return),
+            dict(method='GET',
+                 uri='https://image.example.com/v2/images',
+                 json=list_return),
+        ])
+
+        self.assertEqual(image_id, self.op_cloud.get_image_id(image_id))
         self.assertEqual(
-            'http://fake.url', self.op_cloud.get_session_endpoint('image'))
+            image_id, self.op_cloud.get_image_id('fake_image'))
+
+        self.assert_calls()
 
     @mock.patch.object(cloud_region.CloudRegion, 'get_session')
     def test_get_session_endpoint_exception(self, get_session_mock):
