@@ -178,7 +178,7 @@ RAW_FLAVOR_DICT = {
     'vcpus': 8}
 
 
-class TestUtils(base.TestCase):
+class TestUtils(base.RequestsMockTestCase):
 
     def test_normalize_flavors(self):
         raw_flavor = RAW_FLAVOR_DICT.copy()
@@ -226,6 +226,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_flavor(raw_flavor)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_flavors_strict(self):
         raw_flavor = RAW_FLAVOR_DICT.copy()
         expected = {
@@ -257,6 +259,8 @@ class TestUtils(base.TestCase):
             'vcpus': 8}
         retval = self.strict_cloud._normalize_flavor(raw_flavor)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_nova_images(self):
         raw_image = RAW_NOVA_IMAGE_DICT.copy()
@@ -351,6 +355,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_image(raw_image)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_nova_images_strict(self):
         raw_image = RAW_NOVA_IMAGE_DICT.copy()
         expected = {
@@ -404,6 +410,8 @@ class TestUtils(base.TestCase):
         retval = self.strict_cloud._normalize_image(raw_image)
         self.assertEqual(sorted(expected.keys()), sorted(retval.keys()))
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_glance_images(self):
         raw_image = RAW_GLANCE_IMAGE_DICT.copy()
@@ -495,6 +503,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_image(raw_image)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_glance_images_strict(self):
         raw_image = RAW_GLANCE_IMAGE_DICT.copy()
         expected = {
@@ -547,6 +557,8 @@ class TestUtils(base.TestCase):
         retval = self.strict_cloud._normalize_image(raw_image)
         self.assertEqual(sorted(expected.keys()), sorted(retval.keys()))
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_servers_strict(self):
         raw_server = RAW_SERVER_DICT.copy()
@@ -607,6 +619,8 @@ class TestUtils(base.TestCase):
             'volumes': []}
         retval = self.strict_cloud._normalize_server(raw_server)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_servers_normal(self):
         raw_server = RAW_SERVER_DICT.copy()
@@ -691,6 +705,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_server(raw_server)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_secgroups_strict(self):
         nova_secgroup = dict(
             id='abc123',
@@ -736,6 +752,8 @@ class TestUtils(base.TestCase):
 
         retval = self.strict_cloud._normalize_secgroup(nova_secgroup)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_secgroups(self):
         nova_secgroup = dict(
@@ -787,6 +805,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_secgroup(nova_secgroup)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_secgroups_negone_port(self):
         nova_secgroup = dict(
             id='abc123',
@@ -801,6 +821,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_secgroup(nova_secgroup)
         self.assertIsNone(retval['security_group_rules'][0]['port_range_min'])
         self.assertIsNone(retval['security_group_rules'][0]['port_range_max'])
+
+        self.assert_calls()
 
     def test_normalize_secgroup_rules(self):
         nova_rules = [
@@ -825,6 +847,8 @@ class TestUtils(base.TestCase):
         ]
         retval = self.cloud._normalize_secgroup_rules(nova_rules)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_volumes_v1(self):
         vol = dict(
@@ -877,6 +901,8 @@ class TestUtils(base.TestCase):
         }
         retval = self.cloud._normalize_volume(vol)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_volumes_v2(self):
         vol = dict(
@@ -936,6 +962,8 @@ class TestUtils(base.TestCase):
         retval = self.cloud._normalize_volume(vol)
         self.assertEqual(expected, retval)
 
+        self.assert_calls()
+
     def test_normalize_volumes_v1_strict(self):
         vol = dict(
             id='55db9e89-9cb4-4202-af88-d8c4a174998e',
@@ -981,6 +1009,8 @@ class TestUtils(base.TestCase):
         }
         retval = self.strict_cloud._normalize_volume(vol)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()
 
     def test_normalize_volumes_v2_strict(self):
         vol = dict(
@@ -1029,3 +1059,5 @@ class TestUtils(base.TestCase):
         }
         retval = self.strict_cloud._normalize_volume(vol)
         self.assertEqual(expected, retval)
+
+        self.assert_calls()

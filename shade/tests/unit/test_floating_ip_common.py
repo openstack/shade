@@ -27,7 +27,7 @@ from shade.tests import fakes
 from shade.tests.unit import base
 
 
-class TestFloatingIP(base.TestCase):
+class TestFloatingIP(base.RequestsMockTestCase):
 
     @patch.object(OpenStackCloud, 'get_floating_ip')
     @patch.object(OpenStackCloud, '_attach_ip_to_server')
