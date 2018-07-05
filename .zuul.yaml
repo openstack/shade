@@ -183,27 +183,6 @@
       tox_envlist: ansible
 
 - job:
-    name: shade-ansible-devel-functional-devstack
-    parent: shade-ansible-functional-devstack
-    description: |
-      Run shade ansible functional tests against a master devstack
-      using git devel branch version of ansible.
-    branches: ^(devel|master)$
-    required-projects:
-      - name: github.com/ansible/ansible
-        override-checkout: devel
-      - name: openstack-infra/shade
-        override-checkout: master
-      - name: openstack-dev/devstack
-        override-checkout: master
-    vars:
-      # test-matrix grabs branch from the zuul branch setting. If the job
-      # is triggered by ansible, that branch will be devel which doesn't
-      # make sense to devstack. Override so that we run the right thing.
-      test_matrix_branch: master
-      tox_install_siblings: true
-
-- job:
     name: shade-ansible-stable-2.5-functional-devstack
     parent: shade-ansible-functional-devstack
     description: |
