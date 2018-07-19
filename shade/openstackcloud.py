@@ -1005,7 +1005,7 @@ class OpenStackCloud(
         :param string template_object: URL to retrieve template object.
         :param dict files: dict of additional file content to include.
         :param boolean rollback: Enable rollback on create failure.
-        :param boolean wait: Whether to wait for the delete to finish.
+        :param boolean wait: Whether to wait for the create to finish.
         :param int timeout: Stack create timeout in seconds. None will use
             the server default.
         :param list environment_files: Paths to environment files to apply.
