@@ -8,7 +8,7 @@ To use shade in a project:
 
   import shade
 
-For a simple example, see :ref:`example`.
+For a simple example, see :ref:`usage_example`.
 
 .. note::
   API methods that return a description of an OpenStack resource (e.g.,
