@@ -3153,7 +3153,8 @@ class OpenStackCloud(
     def create_network(self, name, shared=False, admin_state_up=True,
                        external=False, provider=None, project_id=None,
                        availability_zone_hints=None,
-                       port_security_enabled=None):
+                       port_security_enabled=None,
+                       mtu_size=None):
         """Create a network.
 
         :param string name: Name of the network being created.
@@ -3167,6 +3168,8 @@ class OpenStackCloud(
             will be created on (admin-only).
         :param list availability_zone_hints: A list of availability zone hints.
         :param bool port_security_enabled: Enable / Disable port security
+        :param int mtu_size: maximum transmission unit value to address
+            fragmentation. Minimum value is 68 for IPv4, and 1280 for IPv6.
 
         :returns: The network object.
         :raises: OpenStackCloudException on operation error.
@@ -3214,6 +3217,16 @@ class OpenStackCloud(
                 raise exc.OpenStackCloudException(
                     "Parameter 'port_security_enabled' must be a bool")
             network['port_security_enabled'] = port_security_enabled
+
+        if mtu_size:
+            if not isinstance(mtu_size, int):
+                raise exc.OpenStackCloudException(
+                    "Parameter 'mtu_size' must be an integer.")
+            if not mtu_size >= 68:
+                raise exc.OpenStackCloudException(
+                    "Parameter 'mtu_size' must be greater than 67.")
+
+            network['mtu'] = mtu_size
 
         data = self._network_client.post("/networks.json",
                                          json={'network': network})
@@ -10977,7 +10990,7 @@ class OpenStackCloud(
                 json=dict(addProjectAccess=payload),
                 error_message="Unable to authorize {project} "
                               "to use volume type {name}".format(
-                              name=name_or_id, project=project_id))
+                    name=name_or_id, project=project_id))
 
     def remove_volume_type_access(self, name_or_id, project_id):
         """Revoke access on a volume_type to a project.
@@ -10998,7 +11011,7 @@ class OpenStackCloud(
                 json=dict(removeProjectAccess=payload),
                 error_message="Unable to revoke {project} "
                               "to use volume type {name}".format(
-                              name=name_or_id, project=project_id))
+                    name=name_or_id, project=project_id))
 
     def set_compute_quotas(self, name_or_id, **kwargs):
         """ Set a quota in a project
@@ -11071,6 +11084,7 @@ class OpenStackCloud(
 
         :returns: Munch object with the usage
         """
+
         def parse_date(date):
             try:
                 return iso8601.parse_date(date)
