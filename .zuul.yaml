@@ -224,6 +224,7 @@
       - release-notes-jobs-python3
       - check-requirements
       - openstack-python35-jobs
+      - openstack-python36-jobs
     check:
       jobs:
         - bifrost-integration-tinyipa:
