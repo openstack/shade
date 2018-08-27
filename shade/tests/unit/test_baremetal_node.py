@@ -141,7 +141,7 @@ class TestBaremetalNode(base.IronicTestCase):
                              'validate']),
                  json=validate_return),
         ])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.OpenStackCloudException,
             '^ironic node .* failed to validate.*',
             self.op_cloud.validate_node,
@@ -869,7 +869,7 @@ class TestBaremetalNode(base.IronicTestCase):
                     append=[self.fake_baremetal_node['uuid'],
                             'states', 'provision'])),
         ])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.OpenStackCloudException,
             '^Baremetal .* to dummy.*/states/provision.*invalid state',
             self.op_cloud.node_set_provision_state,
@@ -889,7 +889,7 @@ class TestBaremetalNode(base.IronicTestCase):
                     append=[self.fake_baremetal_node['uuid'],
                             'states', 'provision'])),
         ])
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.OpenStackCloudException,
             '^Baremetal .* to dummy.*/states/provision',
             self.op_cloud.node_set_provision_state,
