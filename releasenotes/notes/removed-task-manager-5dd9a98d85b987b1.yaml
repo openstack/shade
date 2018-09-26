@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``manager`` parameter is no longer meaningful. This should have no
+    impact as the only known consumer of the feature is nodepool which
+    no longer uses shade.

@@ -11,7 +11,6 @@
 # limitations under the License.
 
 import base64
-import collections
 import copy
 import datetime
 import functools
@@ -35,7 +34,6 @@ import os
 from openstack.cloud import _utils
 from openstack.config import loader
 from openstack import connection
-from openstack import task_manager
 from openstack import utils
 
 from shade import exc
@@ -135,7 +133,6 @@ class OpenStackCloud(
         super(OpenStackCloud, self).__init__(
             config=cloud_config,
             strict=strict,
-            task_manager=manager,
             app_name=app_name,
             app_version=app_version,
             use_direct_get=use_direct_get,
@@ -7269,118 +7266,6 @@ class OpenStackCloud(
                 self._upload_large_object(
                     endpoint, filename, headers,
                     file_size, segment_size, use_slo)
-
-    def _upload_object(self, endpoint, filename, headers):
-        return self._object_store_client.put(
-            endpoint, headers=headers, data=open(filename, 'r'))
-
-    def _get_file_segments(self, endpoint, filename, file_size, segment_size):
-        # Use an ordered dict here so that testing can replicate things
-        segments = collections.OrderedDict()
-        for (index, offset) in enumerate(range(0, file_size, segment_size)):
-            remaining = file_size - (index * segment_size)
-            segment = _utils.FileSegment(
-                filename, offset,
-                segment_size if segment_size < remaining else remaining)
-            name = '{endpoint}/{index:0>6}'.format(
-                endpoint=endpoint, index=index)
-            segments[name] = segment
-        return segments
-
-    def _object_name_from_url(self, url):
-        '''Get container_name/object_name from the full URL called.
-
-        Remove the Swift endpoint from the front of the URL, and remove
-        the leaving / that will leave behind.'''
-        endpoint = self._object_store_client.get_endpoint()
-        object_name = url.replace(endpoint, '')
-        if object_name.startswith('/'):
-            object_name = object_name[1:]
-        return object_name
-
-    def _add_etag_to_manifest(self, segment_results, manifest):
-        for result in segment_results:
-            if 'Etag' not in result.headers:
-                continue
-            name = self._object_name_from_url(result.url)
-            for entry in manifest:
-                if entry['path'] == '/{name}'.format(name=name):
-                    entry['etag'] = result.headers['Etag']
-
-    def _upload_large_object(
-            self, endpoint, filename,
-            headers, file_size, segment_size, use_slo):
-        # If the object is big, we need to break it up into segments that
-        # are no larger than segment_size, upload each of them individually
-        # and then upload a manifest object. The segments can be uploaded in
-        # parallel, so we'll use the async feature of the TaskManager.
-
-        segment_futures = []
-        segment_results = []
-        retry_results = []
-        retry_futures = []
-        manifest = []
-
-        # Get an OrderedDict with keys being the swift location for the
-        # segment, the value a FileSegment file-like object that is a
-        # slice of the data for the segment.
-        segments = self._get_file_segments(
-            endpoint, filename, file_size, segment_size)
-
-        # Schedule the segments for upload
-        for name, segment in segments.items():
-            # Async call to put - schedules execution and returns a future
-            segment_future = self._object_store_client.put(
-                name, headers=headers, data=segment, run_async=True)
-            segment_futures.append(segment_future)
-            # TODO(mordred) Collect etags from results to add to this manifest
-            # dict. Then sort the list of dicts by path.
-            manifest.append(dict(
-                path='/{name}'.format(name=name),
-                size_bytes=segment.length))
-
-        # Try once and collect failed results to retry
-        segment_results, retry_results = task_manager.wait_for_futures(
-            segment_futures, raise_on_error=False)
-
-        self._add_etag_to_manifest(segment_results, manifest)
-
-        for result in retry_results:
-            # Grab the FileSegment for the failed upload so we can retry
-            name = self._object_name_from_url(result.url)
-            segment = segments[name]
-            segment.seek(0)
-            # Async call to put - schedules execution and returns a future
-            segment_future = self._object_store_client.put(
-                name, headers=headers, data=segment, run_async=True)
-            # TODO(mordred) Collect etags from results to add to this manifest
-            # dict. Then sort the list of dicts by path.
-            retry_futures.append(segment_future)
-
-        # If any segments fail the second time, just throw the error
-        segment_results, retry_results = task_manager.wait_for_futures(
-            retry_futures, raise_on_error=True)
-
-        self._add_etag_to_manifest(segment_results, manifest)
-
-        if use_slo:
-            return self._finish_large_object_slo(endpoint, headers, manifest)
-        else:
-            return self._finish_large_object_dlo(endpoint, headers)
-
-    def _finish_large_object_slo(self, endpoint, headers, manifest):
-        # TODO(mordred) send an etag of the manifest, which is the md5sum
-        # of the concatenation of the etags of the results
-        headers = headers.copy()
-        return self._object_store_client.put(
-            endpoint,
-            params={'multipart-manifest': 'put'},
-            headers=headers, data=json.dumps(manifest))
-
-    def _finish_large_object_dlo(self, endpoint, headers):
-        headers = headers.copy()
-        headers['X-Object-Manifest'] = endpoint
-        return self._object_store_client.put(endpoint, headers=headers)
 
     def update_object(self, container, name, metadata=None, **headers):
         """Update the metadata of an object
