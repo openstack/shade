@@ -15,7 +15,6 @@
 
 import uuid
 
-import openstack.exceptions
 import testtools
 from testtools import matchers
 
@@ -204,7 +203,7 @@ class TestDomains(base.RequestsMockTestCase):
                  json=domain_data.json_response,
                  validate=dict(json={'domain': {'enabled': False}}))])
         with testtools.ExpectedException(
-            openstack.exceptions.ConflictException,
+            shade.OpenStackCloudHTTPError,
             "Error in updating domain %s" % domain_data.domain_id
         ):
             self.op_cloud.delete_domain(domain_data.domain_id)

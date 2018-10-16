@@ -10,10 +10,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from keystoneauth1 import plugin as ksa_plugin
+
+from distutils import version as du_version
 import mock
 import testtools
 
-from openstack.config import cloud_region
+import os_client_config as occ
+from os_client_config import cloud_config
 import shade
 from shade import exc
 from shade.tests import fakes
@@ -72,7 +76,7 @@ class TestShadeOperator(base.RequestsMockTestCase):
 
         self.assert_calls()
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
+    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
     def test_get_session_endpoint_exception(self, get_session_mock):
         class FakeException(Exception):
             pass
@@ -83,14 +87,14 @@ class TestShadeOperator(base.RequestsMockTestCase):
         session_mock.get_endpoint.side_effect = side_effect
         get_session_mock.return_value = session_mock
         self.op_cloud.name = 'testcloud'
-        self.op_cloud.config.region_name = 'testregion'
+        self.op_cloud.region_name = 'testregion'
         with testtools.ExpectedException(
                 exc.OpenStackCloudException,
                 "Error getting image endpoint on testcloud:testregion:"
                 " No service"):
             self.op_cloud.get_session_endpoint("image")
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
+    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
     def test_get_session_endpoint_unavailable(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = None
@@ -98,25 +102,32 @@ class TestShadeOperator(base.RequestsMockTestCase):
         image_endpoint = self.op_cloud.get_session_endpoint("image")
         self.assertIsNone(image_endpoint)
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
+    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
     def test_get_session_endpoint_identity(self, get_session_mock):
         session_mock = mock.Mock()
         get_session_mock.return_value = session_mock
         self.op_cloud.get_session_endpoint('identity')
-        kwargs = dict(
-            interface='public', region_name='RegionOne',
-            service_name=None, service_type='identity')
+        # occ > 1.26.0 fixes keystoneclient construction. Unfortunately, it
+        # breaks our mocking of what keystoneclient does here. Since we're
+        # close to just getting rid of ksc anyway, just put in a version match
+        occ_version = du_version.StrictVersion(occ.__version__)
+        if occ_version > du_version.StrictVersion('1.26.0'):
+            kwargs = dict(
+                interface='public', region_name='RegionOne',
+                service_name=None, service_type='identity')
+        else:
+            kwargs = dict(interface=ksa_plugin.AUTH_INTERFACE)
 
         session_mock.get_endpoint.assert_called_with(**kwargs)
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
+    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
     def test_has_service_no(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = None
         get_session_mock.return_value = session_mock
         self.assertFalse(self.op_cloud.has_service("image"))
 
-    @mock.patch.object(cloud_region.CloudRegion, 'get_session')
+    @mock.patch.object(cloud_config.CloudConfig, 'get_session')
     def test_has_service_yes(self, get_session_mock):
         session_mock = mock.Mock()
         session_mock.get_endpoint.return_value = 'http://fake.url'

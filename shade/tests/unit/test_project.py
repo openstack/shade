@@ -14,6 +14,7 @@ import testtools
 from testtools import matchers
 
 import shade
+import shade._utils
 from shade.tests.unit import base
 
 

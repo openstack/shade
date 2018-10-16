@@ -871,7 +871,7 @@ class TestBaremetalNode(base.IronicTestCase):
         ])
         self.assertRaisesRegex(
             exc.OpenStackCloudException,
-            '^Baremetal .* to dummy.*/states/provision.*invalid state',
+            '^Baremetal .* to dummy.*/states/provision invalid state$',
             self.op_cloud.node_set_provision_state,
             self.fake_baremetal_node['uuid'],
             'dummy')
@@ -891,7 +891,7 @@ class TestBaremetalNode(base.IronicTestCase):
         ])
         self.assertRaisesRegex(
             exc.OpenStackCloudException,
-            '^Baremetal .* to dummy.*/states/provision',
+            '^Baremetal .* to dummy.*/states/provision$',
             self.op_cloud.node_set_provision_state,
             self.fake_baremetal_node['uuid'],
             'dummy')

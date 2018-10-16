@@ -12,7 +12,7 @@
 
 import os
 
-import openstack.config as occ
+import os_client_config as occ
 
 import shade
 from shade.tests import base

@@ -20,7 +20,7 @@ import uuid
 import fixtures
 import mock
 import os
-import openstack.config as occ
+import os_client_config as occ
 from requests import structures
 from requests_mock.contrib import fixture as rm_fixture
 from six.moves import urllib
@@ -140,7 +140,7 @@ class TestCase(BaseTestCase):
 
         super(TestCase, self).setUp(cloud_config_fixture=cloud_config_fixture)
         self.session_fixture = self.useFixture(fixtures.MonkeyPatch(
-            'openstack.config.cloud_region.CloudRegion.get_session',
+            'os_client_config.cloud_config.CloudConfig.get_session',
             mock.Mock()))
 
 

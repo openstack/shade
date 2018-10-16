@@ -39,6 +39,13 @@ Most of the logging is set up to log to the root `shade` logger. There are
 additional sub-loggers that are used at times, primarily so that a user can
 decide to turn on or off a specific type of logging. They are listed below.
 
+shade.task_manager
+  `shade` uses a Task Manager to perform remote calls. The `shade.task_manager`
+  logger emits messages at the start and end of each Task announging what
+  it is going to run and then what it ran and how long it took. Logging
+  `shade.task_manager` is a good way to get a trace of external actions shade
+  is taking without full `HTTP Tracing`_.
+
 shade.request_ids
   The `shade.request_ids` logger emits a log line at the end of each HTTP
   interaction with the OpenStack Request ID associated with the interaction.

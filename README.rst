@@ -1,6 +1,14 @@
 Introduction
 ============
 
+.. warning::
+
+  shade has been superceded by `openstacksdk`_ and no longer takes new
+  features. The existing code will continue to be maintained indefinitely
+  for bugfixes as necessary, but improvements will be deferred to
+  `openstacksdk`_. Please update your applications to use `openstacksdk`_
+  directly.
+
 shade is a simple client library for interacting with OpenStack clouds. The
 key word here is *simple*. Clouds can do many many many things - but there are
 probably only about 10 of them that most people care about with any
@@ -78,3 +86,5 @@ Links
 * `PyPI <https://pypi.org/project/shade/>`_
 * `Mailing list <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-infra>`_
 * `Release notes <https://docs.openstack.org/releasenotes/shade>`_
+
+.. _openstacksdk: https://docs.openstack.org/openstacksdk/latest/user/

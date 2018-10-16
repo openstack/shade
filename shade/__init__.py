@@ -16,7 +16,7 @@ import logging
 import warnings
 
 import keystoneauth1.exceptions
-from openstack.config import loader
+import os_client_config
 import pbr.version
 import requestsexceptions
 
@@ -36,7 +36,11 @@ if requestsexceptions.SubjectAltNameWarning:
 
 def _get_openstack_config(app_name=None, app_version=None):
     # Protect against older versions of os-client-config that don't expose this
-    return loader.OpenStackConfig(app_name=app_name, app_version=app_version)
+    try:
+        return os_client_config.OpenStackConfig(
+            app_name=app_name, app_version=app_version)
+    except Exception:
+        return os_client_config.OpenStackConfig()
 
 
 def simple_logging(debug=False, http_debug=False):
