@@ -1,0 +1,8 @@
+---
+prelude: >
+    The relationship between shade and openstacksdk has been decoupled
+    and the shade library is now officially in maintenance mode. Bugfixes
+    are welcome, and the library remains supported, but no new features
+    will be accepted. Developers are strongly encouraged to migrate to
+    openstacksdk which has the same code but is being actively driven
+    forward.
