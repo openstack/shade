@@ -29,8 +29,9 @@ def output_format_dict(data, use_yaml):
         return json.dumps(data, sort_keys=True, indent=2)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='OpenStack Inventory Module')
+def get_parser():
+    parser = argparse.ArgumentParser(description='OpenStack Inventory Module',
+                                     prog='shade-inventory')
     parser.add_argument('--refresh', action='store_true',
                         help='Refresh cached information')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -45,7 +46,11 @@ def parse_args():
                         help='Output data in nicely readable yaml')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='Enable debug output')
-    return parser.parse_args()
+    return parser
+
+
+def parse_args():
+    return get_parser().parse_args()
 
 
 def main():
