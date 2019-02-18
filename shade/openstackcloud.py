@@ -8234,6 +8234,7 @@ class OpenStackCloud(
         :param device_owner: The ID of the entity that uses this port.
             For example, a DHCP agent.  (Optional)
         :param device_id: The ID of the resource this port is attached to.
+        :param port_security_enabled: Whether port_security_enabled is set (Optional)
 
         :returns: a ``munch.Munch`` describing the updated port.
 
