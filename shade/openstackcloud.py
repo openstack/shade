@@ -8124,7 +8124,7 @@ class OpenStackCloud(
     @_utils.valid_kwargs('name', 'admin_state_up', 'mac_address', 'fixed_ips',
                          'subnet_id', 'ip_address', 'security_groups',
                          'allowed_address_pairs', 'extra_dhcp_opts',
-                         'device_owner', 'device_id')
+                         'device_owner', 'device_id','port_security_enabled')
     def create_port(self, network_id, **kwargs):
         """Create a port
 
@@ -8173,7 +8173,7 @@ class OpenStackCloud(
             For example, a DHCP agent.  (Optional)
         :param device_id: The ID of the device that uses this port.
             For example, a virtual server. (Optional)
-
+        :param port_security_enabled: Whether port_security_enabled is set (Optional)
         :returns: a ``munch.Munch`` describing the created port.
 
         :raises: ``OpenStackCloudException`` on operation error.
@@ -8188,7 +8188,7 @@ class OpenStackCloud(
 
     @_utils.valid_kwargs('name', 'admin_state_up', 'fixed_ips',
                          'security_groups', 'allowed_address_pairs',
-                         'extra_dhcp_opts', 'device_owner', 'device_id')
+                         'extra_dhcp_opts', 'device_owner', 'device_id','port_security_enabled')
     def update_port(self, name_or_id, **kwargs):
         """Update a port
 
