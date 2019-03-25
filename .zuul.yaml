@@ -206,14 +206,10 @@
       - shade-tox-tips
     check:
       jobs:
-        - bifrost-integration-tinyipa
-        - bifrost-integration-tinyipa-opensuse-423
         - shade-functional-devstack
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
     gate:
       jobs:
-        - bifrost-integration-tinyipa
-        - bifrost-integration-tinyipa-opensuse-423
         - shade-functional-devstack
         - shade-functional-devstack-python3
