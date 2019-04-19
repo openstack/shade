@@ -8,7 +8,7 @@
     # shade in required-projects so that os-client-config and keystoneauth
     # can add the job as well
     required-projects:
-      - openstack-infra/shade
+      - openstack/shade
       - openstack/keystoneauth
       - openstack/openstacksdk
       - openstack/os-client-config
@@ -23,7 +23,7 @@
     # shade in required-projects so that os-client-config and keystoneauth
     # can add the job as well
     required-projects:
-      - openstack-infra/shade
+      - openstack/shade
       - openstack/keystoneauth
       - openstack/openstacksdk
       - openstack/os-client-config
@@ -48,7 +48,7 @@
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
     required-projects:
-      - name: openstack-infra/shade
+      - name: openstack/shade
       - name: openstack/heat
       - name: openstack/swift
     timeout: 9000
@@ -74,7 +74,7 @@
         s-object: true
         s-proxy: true
       devstack_plugins:
-        heat: https://git.openstack.org/openstack/heat
+        heat: https://opendev.org/openstack/heat
       tox_environment:
         # Do we really need to set this? It's cargo culted
         PYTHONUNBUFFERED: 'true'
@@ -87,7 +87,7 @@
         SHADE_HAS_SWIFT: 1
       tox_install_siblings: false
       tox_envlist: functional
-      zuul_work_dir: src/git.openstack.org/openstack-infra/shade
+      zuul_work_dir: src/opendev.org/openstack/shade
 
 - job:
     name: shade-functional-devstack-legacy
@@ -158,7 +158,7 @@
       - openstack/python-magnumclient
     vars:
       devstack_plugins:
-        magnum: https://git.openstack.org/openstack/magnum
+        magnum: https://opendev.org/openstack/magnum
       devstack_localrc:
         MAGNUM_GUEST_IMAGE_URL: https://tarballs.openstack.org/magnum/images/fedora-atomic-f23-dib.qcow2
         MAGNUM_IMAGE_NAME: fedora-atomic-f23-dib
