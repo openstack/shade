@@ -3,7 +3,7 @@
 # To enable shade in devstack add an entry to local.conf that looks like
 #
 # [[local|localrc]]
-# enable_plugin shade https://git.openstack.org/openstack-infra/shade
+# enable_plugin shade https://opendev.org/openstack/shade
 
 function preinstall_shade {
     :

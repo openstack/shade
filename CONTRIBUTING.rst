@@ -25,19 +25,19 @@ Project Hosting Details
 -------------------------
 
 Project Documentation
-    http://docs.openstack.org/infra/shade/
+    https://docs.openstack.org/shade/latest/
 
 Bug tracker
     http://storyboard.openstack.org
 
 Mailing list (prefix subjects with ``[shade]`` for faster responses)
-    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-infra
+    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 
 Code Hosting
-    https://git.openstack.org/cgit/openstack-infra/shade
+    https://opendev.org/openstack/shade
 
 Code Review
-    https://review.openstack.org/#/q/status:open+project:openstack-infra/shade,n,z
+    https://review.openstack.org/#/q/status:open+project:openstack/shade,n,z
 
     Please read `GerritWorkflow`_ before sending your first patch for review.
 

@@ -43,7 +43,7 @@ extensions = [
 ]
 
 # openstackdocstheme options
-repository_name = 'openstack-infra/shade'
+repository_name = 'openstack/shade'
 bug_project = '760'
 bug_tag = ''
 html_last_updated_fmt = '%Y-%m-%d %H:%M'

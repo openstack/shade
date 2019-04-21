@@ -81,10 +81,10 @@ Links
 =====
 
 * `Issue Tracker <https://storyboard.openstack.org/#!/project/760>`_
-* `Code Review <https://review.openstack.org/#/q/status:open+project:openstack-infra/shade,n,z>`_
+* `Code Review <https://review.openstack.org/#/q/status:open+project:openstack/shade,n,z>`_
 * `Documentation <https://docs.openstack.org/shade/latest/>`_
 * `PyPI <https://pypi.org/project/shade/>`_
-* `Mailing list <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-infra>`_
+* `Mailing list <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack>`_
 * `Release notes <https://docs.openstack.org/releasenotes/shade>`_
 
 .. _openstacksdk: https://docs.openstack.org/openstacksdk/latest/user/
