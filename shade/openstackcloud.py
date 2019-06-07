@@ -30,7 +30,7 @@ import warnings
 import dogpile.cache
 import munch
 import requestsexceptions
-from six.moves import urllib
+from six.moves import urllib_parse
 
 import keystoneauth1.exceptions
 import keystoneauth1.session
@@ -646,7 +646,7 @@ class OpenStackCloud(
             if not endpoint.rstrip().rsplit('/')[1] == 'v2.0':
                 if not endpoint.endswith('/'):
                     endpoint += '/'
-                endpoint = urllib.parse.urljoin(
+                endpoint = urllib_parse.urljoin(
                     endpoint, 'v2.0')
             client.endpoint_override = endpoint
             self._raw_clients['network'] = client
@@ -2233,10 +2233,10 @@ class OpenStackCloud(
                 self._expand_server(server, detailed, bare)
                 for server in servers
             ]
-            parse_result = urllib.parse.urlparse(
+            parse_result = urllib_parse.urlparse(
                 data['servers_links'][0]['href'])
             pagination_params = dict(
-                urllib.parse.parse_qsl(parse_result.query))
+                urllib_parse.parse_qsl(parse_result.query))
             params.update(pagination_params)
             data = self._compute_client.get(
                 '/servers/detail', params=params, error_message=error_msg)
@@ -7375,7 +7375,9 @@ class OpenStackCloud(
     def get_container(self, name, skip_cache=False):
         if skip_cache or name not in self._container_cache:
             try:
-                container = self._object_store_client.head(name)
+                container = self._object_store_client.head(
+                    self._get_object_endpoint(name)
+                )
                 self._container_cache[name] = container.headers
             except exc.OpenStackCloudHTTPError as e:
                 if e.response.status_code == 404:
@@ -7387,14 +7389,16 @@ class OpenStackCloud(
         container = self.get_container(name)
         if container:
             return container
-        self._object_store_client.put(name)
+        self._object_store_client.put(self._get_object_endpoint(name))
         if public:
             self.set_container_access(name, 'public')
         return self.get_container(name, skip_cache=True)
 
     def delete_container(self, name):
         try:
-            self._object_store_client.delete(name)
+            self._object_store_client.delete(
+                self._get_object_endpoint(name)
+            )
             return True
         except exc.OpenStackCloudHTTPError as e:
             if e.response.status_code == 404:
@@ -7408,7 +7412,9 @@ class OpenStackCloud(
             raise
 
     def update_container(self, name, headers):
-        self._object_store_client.post(name, headers=headers)
+        self._object_store_client.post(
+            self._get_object_endpoint(name), headers=headers
+        )
 
     def set_container_access(self, name, access):
         if access not in OBJECT_CONTAINER_ACLS:
@@ -7460,7 +7466,7 @@ class OpenStackCloud(
         # The endpoint in the catalog has version and project-id in it
         # To get capabilities, we have to disassemble and reassemble the URL
         # This logic is taken from swiftclient
-        endpoint = urllib.parse.urlparse(
+        endpoint = urllib_parse.urlparse(
             self._object_store_client.get_endpoint())
         url = "{scheme}://{netloc}/info".format(
             scheme=endpoint.scheme, netloc=endpoint.netloc)
@@ -7582,8 +7588,7 @@ class OpenStackCloud(
 
         if self.is_object_stale(container, name, filename, md5, sha256):
 
-            endpoint = '{container}/{name}'.format(
-                container=container, name=name)
+            endpoint = self._get_object_endpoint(container, name)
             self.log.debug(
                 "swift uploading %(filename)s to %(endpoint)s",
                 {'filename': filename, 'endpoint': endpoint})
@@ -7656,7 +7661,8 @@ class OpenStackCloud(
         for name, segment in segments.items():
             # Async call to put - schedules execution and returns a future
             segment_future = self._object_store_client.put(
-                name, headers=headers, data=segment, run_async=True)
+                self._get_object_endpoint(name),
+                headers=headers, data=segment, run_async=True)
             segment_futures.append(segment_future)
             # TODO(mordred) Collect etags from results to add to this manifest
             # dict. Then sort the list of dicts by path.
@@ -7707,6 +7713,18 @@ class OpenStackCloud(
         headers['X-Object-Manifest'] = endpoint
         return self._object_store_client.put(endpoint, headers=headers)
 
+    def _get_object_endpoint(self, container, obj=None, query_string=None):
+        endpoint = urllib_parse.quote(container)
+        if obj:
+            endpoint = '{endpoint}/{object}'.format(
+                endpoint=endpoint,
+                object=urllib_parse.quote(obj)
+            )
+        if query_string:
+            endpoint = '{endpoint}?{query_string}'.format(
+                endpoint=endpoint, query_string=query_string)
+        return endpoint
+
     def update_object(self, container, name, metadata=None, **headers):
         """Update the metadata of an object
 
@@ -7730,8 +7748,7 @@ class OpenStackCloud(
         headers = dict(headers, **metadata_headers)
 
         return self._object_store_client.post(
-            '{container}/{object}'.format(
-                container=container, object=name),
+            self._get_object_endpoint(container, name),
             headers=headers)
 
     def list_objects(self, container, full_listing=True):
@@ -7745,7 +7762,7 @@ class OpenStackCloud(
         :raises: OpenStackCloudException on operation error.
         """
         return self._object_store_client.get(
-            container, params=dict(format='json'))
+            self._get_object_endpoint(container), params=dict(format='json'))
 
     def delete_object(self, container, name, meta=None):
         """Delete an object from a container.
@@ -7776,8 +7793,7 @@ class OpenStackCloud(
             if meta.get('X-Static-Large-Object', None) == 'True':
                 params['multipart-manifest'] = 'delete'
             self._object_store_client.delete(
-                '{container}/{object}'.format(
-                    container=container, object=name),
+                self._get_object_endpoint(container, name),
                 params=params)
             return True
         except exc.OpenStackCloudHTTPError:
@@ -7808,8 +7824,7 @@ class OpenStackCloud(
     def get_object_metadata(self, container, name):
         try:
             return self._object_store_client.head(
-                '{container}/{object}'.format(
-                    container=container, object=name)).headers
+                self._get_object_endpoint(container, name)).headers
         except exc.OpenStackCloudException as e:
             if e.response.status_code == 404:
                 return None
@@ -7838,11 +7853,7 @@ class OpenStackCloud(
         """
         # TODO(mordred) implement resp_chunk_size
         try:
-            endpoint = '{container}/{object}'.format(
-                container=container, object=obj)
-            if query_string:
-                endpoint = '{endpoint}?{query_string}'.format(
-                    endpoint=endpoint, query_string=query_string)
+            endpoint = self._get_object_endpoint(container, obj, query_string)
             response = self._object_store_client.get(
                 endpoint, stream=True)
             response_headers = {
