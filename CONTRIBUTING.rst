@@ -18,8 +18,7 @@ signed OpenStack's contributor's agreement.
 
 .. seealso::
 
-   * http://wiki.openstack.org/HowToContribute
-   * http://wiki.openstack.org/CLA
+   * https://wiki.openstack.org/wiki/How_To_Contribute
 
 Project Hosting Details
 -------------------------
@@ -28,7 +27,7 @@ Project Documentation
     https://docs.openstack.org/shade/latest/
 
 Bug tracker
-    http://storyboard.openstack.org
+    https://storyboard.openstack.org/#!/project/openstack/shade
 
 Mailing list (prefix subjects with ``[shade]`` for faster responses)
     http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
@@ -37,7 +36,7 @@ Code Hosting
     https://opendev.org/openstack/shade
 
 Code Review
-    https://review.openstack.org/#/q/status:open+project:openstack/shade,n,z
+    https://review.opendev.org/#/q/status:open+project:openstack/shade,n,z
 
     Please read `GerritWorkflow`_ before sending your first patch for review.
 
