@@ -395,10 +395,10 @@ def _get_supplemental_addresses(cloud, server):
                 server['status'] == 'ACTIVE'):
             for port in cloud.search_ports(
                     filters=dict(device_id=server['id'])):
+                # This SHOULD return one and only one FIP - but doing
+                # it as a search/list lets the logic work regardless
                 for fip in cloud.search_floating_ips(
                         filters=dict(port_id=port['id'])):
-                        # This SHOULD return one and only one FIP - but doing
-                        # it as a search/list lets the logic work regardless
                     if fip['fixed_ip_address'] not in fixed_ip_mapping:
                         log = _log.setup_logging('shade')
                         log.debug(

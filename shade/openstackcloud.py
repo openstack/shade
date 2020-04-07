@@ -3152,10 +3152,10 @@ class OpenStackCloud(
             return ""
 
     def _get_server_console_output(self, server_id, length=None):
-            data = self._compute_client.post(
-                '/servers/{server_id}/action'.format(server_id=server_id),
-                json={'os-getConsoleOutput': {'length': length}})
-            return self._get_and_munchify('output', data)
+        data = self._compute_client.post(
+            '/servers/{server_id}/action'.format(server_id=server_id),
+            json={'os-getConsoleOutput': {'length': length}})
+        return self._get_and_munchify('output', data)
 
     def get_server(
             self, name_or_id=None, filters=None, detailed=False, bare=False,
@@ -9305,7 +9305,7 @@ class OpenStackCloud(
                             "before setting provide state"):
                         machine = self.get_machine(machine['uuid'])
                         if (machine['reservation'] is None and
-                           machine['provision_state'] is not 'enroll'):
+                           machine['provision_state'] != 'enroll'):
                             # NOTE(TheJulia): In this case, the node has
                             # has moved on from the previous state and is
                             # likely not being verified, as no lock is

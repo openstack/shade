@@ -619,7 +619,7 @@ def parse_range(value):
     if value is None:
         return None
 
-    range_exp = re.match('(<|>|<=|>=){0,1}(\d+)$', value)
+    range_exp = re.match(r'(<|>|<=|>=){0,1}(\d+)$', value)
     if range_exp is None:
         return None
 
