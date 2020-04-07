@@ -1,20 +1,4 @@
 - job:
-    name: shade-tox-py27-tips
-    parent: openstack-tox-py27
-    description: |
-      Run tox python 27 unittests against master of important libs
-    vars:
-      tox_install_siblings: true
-      zuul_work_dir: src/opendev.org/openstack/shade
-    # shade in required-projects so that os-client-config and keystoneauth
-    # can add the job as well
-    required-projects:
-      - openstack/shade
-      - openstack/keystoneauth
-      - openstack/openstacksdk
-      - openstack/os-client-config
-
-- job:
     name: shade-tox-py35-tips
     parent: openstack-tox-py35
     description: |
@@ -34,11 +18,9 @@
     name: shade-tox-tips
     check:
       jobs:
-        - shade-tox-py27-tips
         - shade-tox-py35-tips
     gate:
       jobs:
-        - shade-tox-py27-tips
         - shade-tox-py35-tips
 
 - job:
@@ -113,6 +95,7 @@
     description: |
       Run shade functional tests against a master devstack
     vars:
+      python_version: 2.7
       devstack_localrc:
         Q_SERVICE_PLUGIN_CLASSES: qos
         Q_ML2_PLUGIN_EXT_DRIVERS: qos,port_security
@@ -127,25 +110,17 @@
         SHADE_TOX_PYTHON: python3
 
 - job:
-    name: shade-functional-devstack-tips
+    name: shade-functional-devstack-tips-python3
     parent: shade-functional-devstack
     description: |
-      Run shade functional tests with tips of library dependencies against a
-      master devstack.
+      Run shade functional tests with tips of library dependencies using
+      python3 against a master devstack.
     required-projects:
       - name: openstack/keystoneauth
       - name: openstack/openstacksdk
       - name: openstack/os-client-config
     vars:
       tox_install_siblings: true
-
-- job:
-    name: shade-functional-devstack-tips-python3
-    parent: shade-functional-devstack-tips
-    description: |
-      Run shade functional tests with tips of library dependencies using
-      python3 against a master devstack.
-    vars:
       tox_environment:
         SHADE_TOX_PYTHON: python3
 
@@ -207,11 +182,9 @@
     name: shade-functional-tips
     check:
       jobs:
-        - shade-functional-devstack-tips
         - shade-functional-devstack-tips-python3
     gate:
       jobs:
-        - shade-functional-devstack-tips
         - shade-functional-devstack-tips-python3
 
 - project:

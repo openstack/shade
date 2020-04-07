@@ -84,6 +84,7 @@ class OpenStackCloudBadRequest(OpenStackCloudHTTPError):
 class OpenStackCloudURINotFound(OpenStackCloudHTTPError):
     pass
 
+
 # Backwards compat
 OpenStackCloudResourceNotFound = OpenStackCloudURINotFound
 
