@@ -1,8 +1,8 @@
 - job:
-    name: shade-tox-py35-tips
-    parent: openstack-tox-py35
+    name: shade-tox-py38-tips
+    parent: openstack-tox-py38
     description: |
-      Run tox python 35 unittests against master of important libs
+      Run tox python 38 unittests against master of important libs
     vars:
       tox_install_siblings: true
       zuul_work_dir: src/opendev.org/openstack/shade
@@ -18,10 +18,10 @@
     name: shade-tox-tips
     check:
       jobs:
-        - shade-tox-py35-tips
+        - shade-tox-py38-tips
     gate:
       jobs:
-        - shade-tox-py35-tips
+        - shade-tox-py38-tips
 
 - job:
     name: shade-functional-devstack-base
