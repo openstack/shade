@@ -192,7 +192,6 @@
       - openstack-python-jobs
       - openstack-python3-victoria-jobs
       - publish-openstack-docs-pti
-      - publish-to-pypi
       - release-notes-jobs-python3
       - shade-functional-tips
       - shade-tox-tips
