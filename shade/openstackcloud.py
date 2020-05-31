@@ -5102,7 +5102,7 @@ class OpenStackCloud(
         if not img_props:
             return False
         self._image_client.put(
-            '/images/{id}'.format(image.id), headers=img_props)
+            '/images/{id}'.format(id=image.id), headers=img_props)
         self.list_images.invalidate(self)
         return True
 
@@ -11466,7 +11466,7 @@ class OpenStackCloud(
         proj = self.get_project(name_or_id)
         if not proj:
             raise exc.OpenStackCloudException(
-                "project does not exist: {}".format(name=proj.id))
+                "project does not exist: {name}".format(name=proj.id))
 
         data = self._compute_client.get(
             '/os-simple-tenant-usage/{project}'.format(project=proj.id),

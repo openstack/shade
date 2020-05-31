@@ -95,19 +95,17 @@
     description: |
       Run shade functional tests against a master devstack
     vars:
-      python_version: 2.7
       devstack_localrc:
         Q_SERVICE_PLUGIN_CLASSES: qos
         Q_ML2_PLUGIN_EXT_DRIVERS: qos,port_security
+      tox_environment:
+        SHADE_TOX_PYTHON: python3
 
 - job:
     name: shade-functional-devstack-python3
     parent: shade-functional-devstack
     description: |
       Run shade functional tests using python3 against a master devstack
-    vars:
-      shade_environment:
-        SHADE_TOX_PYTHON: python3
 
 - job:
     name: shade-functional-devstack-tips-python3
@@ -207,11 +205,9 @@
         - shade-ansible-stable-2.5-functional-devstack:
             voting: false
         - shade-ansible-functional-devstack
-        - shade-functional-devstack
         - shade-functional-devstack-magnum
         - shade-functional-devstack-python3
     gate:
       jobs:
         - shade-ansible-functional-devstack
-        - shade-functional-devstack
         - shade-functional-devstack-python3

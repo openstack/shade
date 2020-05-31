@@ -305,7 +305,7 @@ class TestImage(BaseTestImage):
                           'X-Timestamp': '1481912480.41664',
                           'X-Trans-Id': 'tx60ec128d9dbf44b9add68-0058543271dfw1',  # noqa
                           'X-Container-Bytes-Used': '0',
-                         'Content-Type': 'text/plain; charset=utf-8'}),
+                          'Content-Type': 'text/plain; charset=utf-8'}),
             dict(method='HEAD',
                  uri='{endpoint}/{container}/{object}'.format(
                      endpoint=endpoint, container=self.container_name,

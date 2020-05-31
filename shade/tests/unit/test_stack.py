@@ -225,7 +225,7 @@ class TestStack(base.RequestsMockTestCase):
             dict(method='GET',
                  uri='{endpoint}/stacks/{id}?{resolve}'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name, resolve=resolve),
+                     id=self.stack_id, resolve=resolve),
                  status_code=404),
         ])
 
@@ -281,7 +281,7 @@ class TestStack(base.RequestsMockTestCase):
             dict(method='GET',
                  uri='{endpoint}/stacks/{id}?resolve_outputs=False'.format(
                      endpoint=fakes.ORCHESTRATION_ENDPOINT,
-                     id=self.stack_id, name=self.stack_name),
+                     id=self.stack_id),
                  status_code=302,
                  headers=dict(
                      location='{endpoint}/stacks/{name}/{id}?{resolve}'.format(

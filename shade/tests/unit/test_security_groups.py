@@ -582,8 +582,7 @@ class TestSecurityGroups(base.RequestsMockTestCase):
             dict(
                 method='GET',
                 uri='{endpoint}/os-security-groups'.format(
-                    endpoint=fakes.COMPUTE_ENDPOINT,
-                    id='server_id'),
+                    endpoint=fakes.COMPUTE_ENDPOINT),
                 json={'security_groups': [nova_grp_dict]}),
             dict(
                 method='POST',

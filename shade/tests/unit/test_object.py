@@ -643,7 +643,6 @@ class TestObjectUploads(BaseTestObject):
                 'header mismatch in manifest call')
 
         base_object = '/{container}/{object}'.format(
-            endpoint=self.endpoint,
             container=self.container,
             object=self.object)
 
@@ -864,7 +863,6 @@ class TestObjectUploads(BaseTestObject):
                 'header mismatch in manifest call')
 
         base_object = '/{container}/{object}'.format(
-            endpoint=self.endpoint,
             container=self.container,
             object=self.object)
 
