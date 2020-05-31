@@ -10,10 +10,9 @@ extensions = [
 ]
 
 # openstackdocstheme options
-repository_name = 'openstack/shade'
-bug_project = '760'
-bug_tag = ''
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
+openstackdocs_repo_name = 'openstack/shade'
+openstackdocs_auto_name = False
+openstackdocs_use_storyboard = True
 html_theme = 'openstackdocs'
 
 # The suffix of source filenames.
