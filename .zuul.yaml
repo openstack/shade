@@ -199,8 +199,6 @@
       jobs:
         - bifrost-integration-tinyipa:
             voting: false
-        - bifrost-integration-tinyipa-opensuse-15:
-            voting: false
         - shade-ansible-stable-2.5-functional-devstack:
             voting: false
         - shade-ansible-functional-devstack
