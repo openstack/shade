@@ -1,4 +1,0 @@
----
-features:
-  - server creation errors now include the server id in the
-    Exception to allow people to clean up.

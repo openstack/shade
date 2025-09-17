@@ -1,4 +1,0 @@
----
-features:
-  - Added ``group`` parameter to create_server to allow
-    booting a server into a specific server group.

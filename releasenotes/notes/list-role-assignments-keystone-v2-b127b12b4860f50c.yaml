@@ -1,3 +1,0 @@
----
-features:
-  - Implement list_role_assignments for keystone v2, using roles_for_user.

@@ -1,4 +1,0 @@
----
-fixes:
-  - Role assignments were being returned as plain dicts instead of Munch objects.
-    This has been corrected.

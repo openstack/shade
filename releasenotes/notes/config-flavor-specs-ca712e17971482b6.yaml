@@ -1,4 +1,0 @@
----
-features:
-  - Adds ability to add a config setting to clouds.yaml to
-    disable fetching extra_specs from flavors.

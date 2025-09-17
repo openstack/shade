@@ -1,4 +1,0 @@
----
-features:
-  - Add support for Designate recordsets resources, with the
-    usual methods (search/list/get/create/update/delete).

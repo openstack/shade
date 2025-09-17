@@ -1,5 +1,0 @@
----
-upgrade:
-  - All Nova interactions are done via direct REST calls.
-    python-novaclient is no longer a direct dependency of
-    shade.

@@ -1,4 +1,0 @@
----
-fixes:
-  - Fixed caching the volume list when volumes are in
-    use.

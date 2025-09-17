@@ -1,3 +1,0 @@
----
-fixes:
-  - Fixed the volume normalization function when used with cinder v2.

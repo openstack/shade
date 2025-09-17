@@ -1,3 +1,0 @@
----
-features:
-  - New wait_for_server() API call to wait for a server to reach ACTIVE status.

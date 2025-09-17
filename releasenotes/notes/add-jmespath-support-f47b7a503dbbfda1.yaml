@@ -1,4 +1,0 @@
----
-features:
-  - All get and search functions can now take a jmespath expression in their
-    filters parameter.

@@ -1,3 +1,0 @@
----
-features:
-  - get_object now supports streaming output directly to a file.

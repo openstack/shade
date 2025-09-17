@@ -1,3 +1,0 @@
----
-fixes:
-  - Fix for list_networks() ignoring any filters.

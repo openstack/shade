@@ -1,4 +1,0 @@
----
-upgrade:
-  - magnumclient is no longer a direct dependency as
-    magnum API calls are now made directly via REST.

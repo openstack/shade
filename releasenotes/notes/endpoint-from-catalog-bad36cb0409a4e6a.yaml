@@ -1,4 +1,0 @@
----
-features:
-  - Add new method, 'endpoint_for' which will return the
-    raw endpoint for a given service from the current catalog.

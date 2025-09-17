@@ -1,4 +1,0 @@
----
-features:
-  - Added name_or_id parameter to domain operations, allowing
-    an admin to update/delete/get by domain name.
